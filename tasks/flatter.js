@@ -1,4 +1,4 @@
-const fs = require("fs");
+import { writeFileSync, realpathSync } from "fs";
 
 function getSortedFiles(dependenciesGraph) {
   const tsort = require("tsort");
@@ -101,7 +101,7 @@ subtask(
     flattened = flattened.trim();
     if (output) {
       console.log("Writing to", output);
-      fs.writeFileSync(output, flattened);
+      writeFileSync(output, flattened);
       return "";
     }
     return flattened;
@@ -113,7 +113,7 @@ subtask("flatter:get-dependency-graph")
     const sourcePaths =
       files === undefined
         ? await run("compile:solidity:get-source-paths")
-        : files.map((f) => fs.realpathSync(f));
+        : files.map((f) => realpathSync(f));
 
     const sourceNames = await run("compile:solidity:get-source-names", {
       sourcePaths,

@@ -24,4 +24,8 @@ module.exports = {
       accounts: [],
     },
   },
+  NR_WithProxy: true,
+  NR_Address: "",
+  NR_PlatformAddress: "",
+  NR_CategoryURI: "",
 };

@@ -1,7 +1,7 @@
-const hre = require("hardhat");
-const { basename } = require("path");
+import { run } from "hardhat";
+import { basename } from "path";
 
-let inputs = require("../build-contracts.json");
+import inputs from "../build-contracts.json";
 
 async function main() {
   if (process.argv.length > 2) {
@@ -10,7 +10,7 @@ async function main() {
   for (const file of inputs) {
     const files = [file];
     const output = `./dist/${basename(file)}`;
-    await hre.run("flatter", { files, output });
+    await run("flatter", { files, output });
   }
 }
 
