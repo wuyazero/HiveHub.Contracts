@@ -1,4 +1,6 @@
 require("@nomiclabs/hardhat-waffle");
+require("@openzeppelin/hardhat-upgrades");
+require("./tasks/flatter");
 
 /**
  * @type import('hardhat/config').HardhatUserConfig

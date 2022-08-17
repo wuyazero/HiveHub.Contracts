@@ -1,6 +1,6 @@
-import hre from "hardhat";
+const hre = require("hardhat");
 const { ethers, upgrades } = hre;
-import { NR_PlatformAddress, NR_CategoryURI, NR_WithProxy, NR_Address } from "../hardhat.config";
+const config = require("../hardhat.config");
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -11,23 +11,23 @@ async function main() {
   );
 
   // ***************************  Node Registry  *************************** //
-  if (!NR_PlatformAddress) {
+  if (!config.NR_PlatformAddress) {
     console.log("Platform address is not set.");
     return ;
   }
-  if (!NR_CategoryURI) {
+  if (!config.NR_CategoryURI) {
     console.log("Category URI is not set.");
     return ;
   }
   // deploy proxy contract
   const NodeRegistry = await ethers.getContractFactory("NodeRegistry");
   let proxiedNodeRegisty;
-  if (NR_WithProxy) {
-    proxiedNodeRegisty = await upgrades.deployProxy(NodeRegistry, [NR_PlatformAddress, NR_CategoryURI]);
+  if (config.NR_WithProxy) {
+    proxiedNodeRegisty = await upgrades.deployProxy(NodeRegistry, [config.NR_PlatformAddress, config.NR_CategoryURI]);
     await proxiedNodeRegisty.deployed();
   }
   else {
-    proxiedNodeRegisty = await upgrades.upgradeProxy(NR_Address, NodeRegistry)
+    proxiedNodeRegisty = await upgrades.upgradeProxy(config.NR_Address, NodeRegistry)
   }
 
   // verify implementation contract

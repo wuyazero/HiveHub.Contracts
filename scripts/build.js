@@ -1,7 +1,6 @@
-import { run } from "hardhat";
-import { basename } from "path";
-
-import inputs from "../build-contracts.json";
+const hre = require("hardhat");
+const { basename } = require("path");
+let inputs = require("../build-contracts.json");
 
 async function main() {
   if (process.argv.length > 2) {
