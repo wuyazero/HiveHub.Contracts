@@ -65,6 +65,12 @@ contract NodeRegistry is Agentable, ReentrancyGuardUpgradeable, ERC721 {
     );
 
     /**
+     * @notice Node revealed event
+     * @param tokenId Revealed node Id.
+     */
+    event NodeRevealed(uint256 tokenId);
+
+    /**
      * @dev MUST emit when categories URI is updated.
      * The `categoryURI` argument MUST be the updated uri of the categories.
      */
@@ -104,15 +110,16 @@ contract NodeRegistry is Agentable, ReentrancyGuardUpgradeable, ERC721 {
         address receiptAddr;
         address ownerAddr;
         address agentAddr;
+        bool isRevealed;
     }
 
-    string constant private _name = "Hive Node Token Collection";
-    string constant private _symbol = "HNTC";
+    string private constant _name = "Hive Node Token Collection";
+    string private constant _symbol = "HNTC";
     address private _platformAddr;
     string private _categoryURI;
     mapping(uint256 => Node) private _allTokens;
     EnumerableSet.UintSet private _tokens;
-    mapping (address => EnumerableSet.UintSet) private _agentTokens;
+    mapping(address => EnumerableSet.UintSet) private _agentTokens;
     // EnumerableSet.AddressSet private _agents;
     address[] private _agents;
     mapping(address => uint256) private agentToIndex; // agent => index of _agents
@@ -126,11 +133,11 @@ contract NodeRegistry is Agentable, ReentrancyGuardUpgradeable, ERC721 {
         __Ownable_init();
         __ERC721_init(_name, _symbol);
         require(
-            _setPlatformAddr(platformAddress_), 
+            _setPlatformAddr(platformAddress_),
             "NodeRegistry: initialize platform address failed"
         );
         require(
-            _setCategoryList(categoryURI_), 
+            _setCategoryList(categoryURI_),
             "NodeRegistry: initialize category failed"
         );
     }
@@ -287,6 +294,7 @@ contract NodeRegistry is Agentable, ReentrancyGuardUpgradeable, ERC721 {
         newNode.receiptAddr = receiptAddr;
         newNode.ownerAddr = ownerAddr;
         newNode.agentAddr = agentAddr;
+        newNode.isRevealed = false;
 
         _allTokens[tokenId] = newNode;
         // registered nodes
@@ -432,6 +440,28 @@ contract NodeRegistry is Agentable, ReentrancyGuardUpgradeable, ERC721 {
     }
 
     /**
+     * @notice Reveal node
+     * @param tokenId node Id.
+     */
+    function revealNode(uint256 tokenId) external nonReentrant onlyOwner {
+        require(_exists(tokenId), "NodeRegistry: invalid nodeId");
+        _allTokens[tokenId].isRevealed = true;
+        emit NodeRevealed(tokenId);
+    }
+
+    /**
+     * @notice Override to check if the node is revealed or not before transfer
+     * @param from Address of sender.
+     * @param to Address of receiver.
+     * @param tokenId node Id.
+     */
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual override {
+        super._beforeTokenTransfer(from, to, tokenId);
+        if (from != address(0) && to != address(0))
+            require(_allTokens[tokenId].isRevealed == true, "NodeRegistry: node is not revealed");
+    }
+
+    /**
      * @notice Get node by nodeId
      * @param tokenId Node Id.
      * @return Node information.
@@ -545,7 +575,7 @@ contract NodeRegistry is Agentable, ReentrancyGuardUpgradeable, ERC721 {
     /**
      * @notice Set agent role.
      */
-    function _setAgent(address _addr, bool _state) virtual override internal {
+    function _setAgent(address _addr, bool _state) internal virtual override {
         super._setAgent(_addr, _state);
         if (_state) {
             // _agents.add(_addr);
@@ -658,6 +688,7 @@ contract NodeRegistry is Agentable, ReentrancyGuardUpgradeable, ERC721 {
     }
 
     receive() external payable {}
+    
     fallback() external payable {}
 
     /**
