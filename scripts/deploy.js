@@ -11,23 +11,23 @@ async function main() {
   );
 
   // ***************************  Node Registry  *************************** //
-  if (!config.NR_PlatformAddress) {
+  if (!config.parameters.deployment.PlatformAddress) {
     console.log("Platform address is not set.");
     return ;
   }
-  if (!config.NR_CategoryURI) {
+  if (!config.parameters.deployment.CategoryURI) {
     console.log("Category URI is not set.");
     return ;
   }
   // deploy proxy contract
   const NodeRegistry = await ethers.getContractFactory("NodeRegistry");
   let proxiedNodeRegisty;
-  if (config.NR_WithProxy) {
-    proxiedNodeRegisty = await upgrades.deployProxy(NodeRegistry, [config.NR_PlatformAddress, config.NR_CategoryURI]);
+  if (config.parameters.deployment.WithProxy) {
+    proxiedNodeRegisty = await upgrades.deployProxy(NodeRegistry, [config.parameters.deployment.PlatformAddress, config.parameters.deployment.CategoryURI]);
     await proxiedNodeRegisty.deployed();
   }
   else {
-    proxiedNodeRegisty = await upgrades.upgradeProxy(config.NR_Address, NodeRegistry)
+    proxiedNodeRegisty = await upgrades.upgradeProxy(config.parameters.deployment.ContractAddress, NodeRegistry)
   }
 
   // verify implementation contract
