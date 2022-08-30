@@ -28,10 +28,6 @@ module.exports = {
   },
   parameters: {
     deployment: {
-      NR_WithProxy: true,
-      NR_Address: "",
-      NR_PlatformAddress: "",
-      NR_CategoryURI: "",
       PlatformAddress: '', // Platform Fee Address of the Node Registry Contract 
       CategoryURI: '', // Category URI of the Node Registry Contract
       WithProxy: true, // Set true for new proxy contract deployment, set false for updates  
