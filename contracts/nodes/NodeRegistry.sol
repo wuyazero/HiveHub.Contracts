@@ -462,6 +462,17 @@ contract NodeRegistry is Agentable, ReentrancyGuardUpgradeable, ERC721 {
     }
 
     /**
+     * @notice Override to change ownership of the token
+     * @param from Address of sender.
+     * @param to Address of receiver.
+     * @param tokenId node Id.
+     */
+    function _afterTokenTransfer(address from, address to, uint256 tokenId) internal virtual override {
+        super._afterTokenTransfer(from, to, tokenId);
+        _allTokens[tokenId].ownerAddr = to;
+    }
+
+    /**
      * @notice Get node by nodeId
      * @param tokenId Node Id.
      * @return Node information.
