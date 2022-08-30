@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 import "../nodes/NodeRegistry.sol";
 
-contract MockCR is NodeRegistry {
+contract MockNR is NodeRegistry {
     event VersionUpdated(uint256 newVersion);
     
     uint256 private _proxyVersion;
