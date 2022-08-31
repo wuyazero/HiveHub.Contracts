@@ -1129,5 +1129,25 @@ describe("NodeRegistry Contract", function () {
             // check updated categoriesURI
             expect(await nodeRegistry.getCategoryList()).to.be.equal(updatedCategoryUri);
         });
+
+        it("Should be able to manage platform address", async function () {
+            // check initial platform fee config set by constructor
+            const initPlatformAddr = await nodeRegistry.platformAddress();
+            expect(initPlatformAddr).to.be.equal(platform.address);
+
+            // check input value
+            await expect(nodeRegistry.connect(addr1).setPlatformAddr(ethers.constants.AddressZero)).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(platform).setPlatformAddr(addr1.address)).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(addr2).setPlatformAddr(addr1.address)).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(owner).setPlatformAddr(ethers.constants.AddressZero)).to.be.revertedWith("NodeRegistry: invalid platform address");
+            await expect(nodeRegistry.connect(owner).setPlatformAddr(ethers.constants.AddressZero)).to.be.revertedWith("NodeRegistry: invalid platform address");
+
+            // set platform fee config
+            await expect(nodeRegistry.connect(owner).setPlatformAddr(addr2.address)).to.emit(nodeRegistry, 'PlatformFeeChanged').withArgs(addr2.address);
+
+            // check updated platform fee config
+            const updatedPlatformAddr = await nodeRegistry.platformAddress();
+            expect(updatedPlatformAddr).to.be.equal(addr2.address);
+        });
     });
 });
