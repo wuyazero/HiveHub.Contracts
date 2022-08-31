@@ -1071,5 +1071,51 @@ describe("NodeRegistry Contract", function () {
             // unregister with node owner
             await expect(nodeRegistry.connect(addr2)['burn(uint256)'](node1.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node1.nodeId);
         });
+
+        it("Should be able to manage agent", async function () {
+            let agents;
+            // check inital agent state
+            expect(await nodeRegistry.agentCount()).to.be.equal(0);
+            agents = await nodeRegistry.agents();
+            expect(agents.length).to.be.equal(0);
+            expect(await nodeRegistry.isAgent(addr1.address)).to.be.equal(false);
+            expect(await nodeRegistry.isAgent(addr2.address)).to.be.equal(false);
+
+            // add agent
+            await expect(nodeRegistry.connect(addr1).addAgent(addr2.address)).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(owner).addAgent(addr2.address)).to.emit(nodeRegistry, "AgentAdded").withArgs(addr2.address);
+            await expect(nodeRegistry.connect(addr2).addAgent(addr1.address)).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(owner).addAgent(addr1.address)).to.emit(nodeRegistry, "AgentAdded").withArgs(addr1.address);
+
+            // check updated agent state
+            expect(await nodeRegistry.agentCount()).to.be.equal(2);
+            agents = await nodeRegistry.agents();
+            expect(agents[0]).to.be.equal(addr2.address);
+            expect(agents[1]).to.be.equal(addr1.address);
+            expect(await nodeRegistry.isAgent(addr1.address)).to.be.equal(true);
+            expect(await nodeRegistry.isAgent(addr2.address)).to.be.equal(true);
+
+            // remove agent
+            await expect(nodeRegistry.connect(addr1).removeAgent(addr2.address)).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(owner).removeAgent(addr2.address)).to.emit(nodeRegistry, "AgentRemoved").withArgs(addr2.address);
+
+            // check updated agent state
+            expect(await nodeRegistry.agentCount()).to.be.equal(1);
+            agents = await nodeRegistry.agents();
+            expect(agents[0]).to.be.equal(addr1.address);
+            expect(await nodeRegistry.isAgent(addr1.address)).to.be.equal(true);
+            expect(await nodeRegistry.isAgent(addr2.address)).to.be.equal(false);
+
+            // renounce agentship
+            await expect(nodeRegistry.connect(addr2).renounceAgentship()).to.be.revertedWith("Agentable: caller is not agent");
+            await expect(nodeRegistry.connect(addr1).renounceAgentship()).to.emit(nodeRegistry, "AgentRemoved").withArgs(addr1.address);
+
+            // check updated agent state
+            expect(await nodeRegistry.agentCount()).to.be.equal(0);
+            agents = await nodeRegistry.agents();
+            expect(agents.length).to.be.equal(0);
+            expect(await nodeRegistry.isAgent(addr1.address)).to.be.equal(false);
+            expect(await nodeRegistry.isAgent(addr2.address)).to.be.equal(false);
+        });
     });
 });
