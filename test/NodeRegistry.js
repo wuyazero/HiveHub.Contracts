@@ -544,5 +544,445 @@ describe("NodeRegistry Contract", function () {
             // unregister with node owner
             await expect(nodeRegistry.connect(addr2)['burn(uint256)'](node1.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node1.nodeId);
         });
+
+        it("Should be able to register / unregister / update nodes by agent", async function () {
+            const registerFee = parseEther('1');
+            const node1 = { agent: addr1.address, owner: addr2.address, nodeId: BigNumber.from(1), nodeUri: "first node uri", nodeEntry: "first node entry", receipt: receipt1.address, quoteToken: ethers.constants.AddressZero, value: registerFee, price: registerFee, fee: registerFee, updatednodeUri: "updated first node uri", updatedReceipt: receipt1.address }; // Native token (value != 0)
+            const node2 = { agent: addr2.address, owner: addr1.address, nodeId: BigNumber.from(2), nodeUri: "second node uri", nodeEntry: "second node entry", receipt: receipt2.address, quoteToken: ethers.constants.AddressZero, value: 0, price: registerFee, fee: registerFee, updatednodeUri: "updated second node uri", updatedReceipt: receipt1.address }; // Native token (value == 0)
+            const node3 = { agent: owner.address, owner: addr2.address, nodeId: BigNumber.from(3), nodeUri: "third node uri", nodeEntry: "third node entry", receipt: receipt3.address, quoteToken: testERC20.address, value: registerFee, price: 0, fee: registerFee, updatednodeUri: "updated third node uri", updatedReceipt: receipt4.address }; // ERC20 token (price == 0)
+            const node4 = { agent: addr1.address, owner: addr1.address, nodeId: BigNumber.from(4), nodeUri: "fourth node uri", nodeEntry: "fourth node entry", receipt: receipt4.address, quoteToken: testERC20.address, value: 0, price: 0, fee: 0, updatednodeUri: "updated fourth node uri", updatedReceipt: receipt2.address }; // ERC20 token (value, price == 0 : no fee)
+            const node5 = { agent: owner.address, owner: owner.address, nodeId: BigNumber.from(5), nodeUri: "fifth node uri", nodeEntry: "fifth node entry", receipt: receipt5.address, quoteToken: ethers.constants.AddressZero, value: 0, price: 0, fee: 0, updatednodeUri: node1.nodeUri, updatedReceipt: ethers.constants.AddressZero }; // Native token (value, price == 0 : no fee)
+            const node6 = { agent: addr1.address, owner: owner.address, nodeId: BigNumber.from(6), nodeUri: "sixth node uri", nodeEntry: "sixth node entry", receipt: receipt1.address, quoteToken: ethers.constants.AddressZero, value: registerFee, price: 0, fee: registerFee, updatednodeUri: "updated sixth node uri", updatedReceipt: ethers.constants.AddressZero };
+            const node7 = { agent: addr2.address, owner: addr1.address, nodeId: BigNumber.from(7), nodeUri: "seventh node uri", nodeEntry: "seventh node entry", receipt: receipt1.address, quoteToken: ethers.constants.AddressZero, value: 0, price: registerFee, fee: 0, updatednodeUri: "updated seventh node uri", updatedReceipt: receipt3.address };
+
+            let nodes, node_1, node_2, node_3, node_4, node_5, node_6, node_7, ownernodes, addr1nodes, addr2nodes;
+
+            // ********************************************************  Register  ******************************************************** //
+            // check input value for register
+            await expect(nodeRegistry.connect(addr1)['mint(uint256,string,string,address,address)'](node1.nodeId, node1.nodeUri, node1.nodeEntry, node1.receipt, node1.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            await expect(nodeRegistry.connect(addr1)['mint(uint256,string,string,address,address)'](node1.nodeId, node1.nodeUri, node1.nodeEntry, ethers.constants.AddressZero, node1.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            await expect(nodeRegistry.connect(addr1)['mint(uint256,string,string,address,address)'](node1.nodeId, node1.nodeUri, node1.nodeEntry, ethers.constants.AddressZero, ethers.constants.AddressZero)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+
+            // add to agents (addr1, addr2) 
+            await expect(nodeRegistry.connect(owner).addAgent(addr1.address)).to.emit(nodeRegistry, "AgentAdded").withArgs(addr1.address);
+            await expect(nodeRegistry.connect(owner).addAgent(addr2.address)).to.emit(nodeRegistry, "AgentAdded").withArgs(addr2.address);
+
+            await expect(nodeRegistry.connect(addr1)['mint(uint256,string,string,address,address)'](node1.nodeId, node1.nodeUri, node1.nodeEntry, ethers.constants.AddressZero, node1.owner)).to.be.revertedWith("NodeRegistry: invalid receipt address");
+            await expect(nodeRegistry.connect(addr1)['mint(uint256,string,string,address,address)'](node1.nodeId, node1.nodeUri, node1.nodeEntry, ethers.constants.AddressZero, ethers.constants.AddressZero)).to.be.revertedWith("NodeRegistry: invalid receipt address");
+            await expect(nodeRegistry.connect(addr1)['mint(uint256,string,string,address,address)'](node1.nodeId, node1.nodeUri, node1.nodeEntry, node1.receipt, ethers.constants.AddressZero)).to.be.revertedWith("NodeRegistry: invalid node owner address");
+
+            // register with native token (value != 0)
+            await expect(nodeRegistry.connect(addr1)['mint(uint256,string,string,address,address)'](node1.nodeId, node1.nodeUri, node1.nodeEntry, node1.receipt, node1.owner))
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry, node1.receipt, node1.owner, node1.agent);
+            // register with same nodeId will be reverted
+            await expect(nodeRegistry.connect(addr2)['mint(uint256,string,string,address,address)'](node1.nodeId, node2.nodeUri, node2.nodeEntry, node2.receipt, node2.owner)).to.be.revertedWith("ERC721: token already minted");
+            // register with native token (value == 0)
+            await expect(nodeRegistry.connect(addr2)['mint(uint256,string,string,address,address)'](node2.nodeId, node2.nodeUri, node2.nodeEntry, node2.receipt, node2.owner))
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node2.nodeId, node2.nodeUri, node2.nodeEntry, node2.receipt, node2.owner, node2.agent);
+            // remove agent for addr2
+            await expect(nodeRegistry.connect(owner).removeAgent(addr2.address)).to.emit(nodeRegistry, "AgentRemoved").withArgs(addr2.address);
+            await expect(nodeRegistry.connect(addr2)['mint(uint256,string,string,address,address)'](node3.nodeId, node3.nodeUri, node3.nodeEntry, node3.receipt, node3.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            // register with ERC20 token (value != 0)
+            await expect(nodeRegistry.connect(owner)['mint(uint256,string,string,address,address)'](node3.nodeId, node3.nodeUri, node3.nodeEntry, node3.receipt, node3.owner))
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node3.nodeId, node3.nodeUri, node3.nodeEntry, node3.receipt, node3.owner, node3.agent);
+            // register with ERC20 token (value != 0: no fee)
+            await expect(nodeRegistry.connect(addr1)['mint(uint256,string,string,address,address)'](node4.nodeId, node4.nodeUri, node4.nodeEntry, node4.receipt, node4.owner))
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node4.nodeId, node4.nodeUri, node4.nodeEntry, node4.receipt, node4.owner, node4.agent);
+            // register with native token (value == 0, fee = 0)
+            await expect(nodeRegistry.connect(owner)['mint(uint256,string,string,address,address)'](node5.nodeId, node5.nodeUri, node5.nodeEntry, node5.receipt, node5.owner))
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node5.nodeId, node5.nodeUri, node5.nodeEntry, node5.receipt, node5.owner, node5.agent);
+
+            // ********************************************************  Check state  ******************************************************** //
+            // get node by id (nodeInfo)
+            node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
+            expect(node_1.tokenId).to.be.equal(node1.nodeId);
+            expect(node_1.tokenURI).to.be.equal(node1.nodeUri);
+            expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
+            expect(node_1.receiptAddr).to.be.equal(node1.receipt);
+            expect(node_1.ownerAddr).to.be.equal(node1.owner);
+            expect(node_1.agentAddr).to.be.equal(node1.agent);
+            expect(node_1.isRevealed).to.be.equal(false);
+
+            node_2 = await nodeRegistry.nodeInfo(node2.nodeId);
+            expect(node_2.tokenId).to.be.equal(node2.nodeId);
+            expect(node_2.tokenURI).to.be.equal(node2.nodeUri);
+            expect(node_2.nodeEntry).to.be.equal(node2.nodeEntry);
+            expect(node_2.receiptAddr).to.be.equal(node2.receipt);
+            expect(node_2.ownerAddr).to.be.equal(node2.owner);
+            expect(node_2.agentAddr).to.be.equal(node2.agent);
+            expect(node_2.isRevealed).to.be.equal(false);
+
+            node_3 = await nodeRegistry.nodeInfo(node3.nodeId);
+            expect(node_3.tokenId).to.be.equal(node3.nodeId);
+            expect(node_3.tokenURI).to.be.equal(node3.nodeUri);
+            expect(node_3.nodeEntry).to.be.equal(node3.nodeEntry);
+            expect(node_3.receiptAddr).to.be.equal(node3.receipt);
+            expect(node_3.ownerAddr).to.be.equal(node3.owner);
+            expect(node_3.agentAddr).to.be.equal(node3.agent);
+            expect(node_3.isRevealed).to.be.equal(false);
+
+            node_4 = await nodeRegistry.nodeInfo(node4.nodeId);
+            expect(node_4.tokenId).to.be.equal(node4.nodeId);
+            expect(node_4.tokenURI).to.be.equal(node4.nodeUri);
+            expect(node_4.nodeEntry).to.be.equal(node4.nodeEntry);
+            expect(node_4.receiptAddr).to.be.equal(node4.receipt);
+            expect(node_4.ownerAddr).to.be.equal(node4.owner);
+            expect(node_4.agentAddr).to.be.equal(node4.agent);
+            expect(node_4.isRevealed).to.be.equal(false);
+
+            node_5 = await nodeRegistry.nodeInfo(node5.nodeId);
+            expect(node_5.tokenId).to.be.equal(node5.nodeId);
+            expect(node_5.tokenURI).to.be.equal(node5.nodeUri);
+            expect(node_5.nodeEntry).to.be.equal(node5.nodeEntry);
+            expect(node_5.receiptAddr).to.be.equal(node5.receipt);
+            expect(node_5.ownerAddr).to.be.equal(node5.owner);
+            expect(node_5.agentAddr).to.be.equal(node5.agent);
+            expect(node_5.isRevealed).to.be.equal(false);
+
+            // get nodes
+            // count
+            expect(await nodeRegistry.nodeCount()).to.be.equal(5);
+            // nodes by index
+            expect((await nodeRegistry.nodeByIndex(0)).tokenId).to.be.equal(node1.nodeId);
+            expect((await nodeRegistry.nodeByIndex(1)).tokenId).to.be.equal(node2.nodeId);
+            expect((await nodeRegistry.nodeByIndex(2)).tokenId).to.be.equal(node3.nodeId);
+            expect((await nodeRegistry.nodeByIndex(3)).tokenId).to.be.equal(node4.nodeId);
+            expect((await nodeRegistry.nodeByIndex(4)).tokenId).to.be.equal(node5.nodeId);
+            await expect(nodeRegistry.nodeByIndex(5)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            // nodeIds
+            nodes = await nodeRegistry.nodeIds();
+            expect(nodes.length).to.be.equal(5);
+            expect(nodes[0]).to.be.equal(node1.nodeId);
+            expect(nodes[1]).to.be.equal(node2.nodeId);
+            expect(nodes[2]).to.be.equal(node3.nodeId);
+            expect(nodes[3]).to.be.equal(node4.nodeId);
+            expect(nodes[4]).to.be.equal(node5.nodeId);
+
+            // get owend nodes
+            // count
+            expect(await nodeRegistry.ownedNodeCount(owner.address)).to.be.equal(1);
+            expect(await nodeRegistry.ownedNodeCount(addr1.address)).to.be.equal(2);
+            expect(await nodeRegistry.ownedNodeCount(addr2.address)).to.be.equal(2);
+            // nodes by index
+            expect((await nodeRegistry.ownedNodeByIndex(owner.address, 0)).tokenId).to.be.equal(node5.nodeId);
+            await expect(nodeRegistry.ownedNodeByIndex(owner.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.ownedNodeByIndex(addr1.address, 0)).tokenId).to.be.equal(node2.nodeId);
+            expect((await nodeRegistry.ownedNodeByIndex(addr1.address, 1)).tokenId).to.be.equal(node4.nodeId);
+            await expect(nodeRegistry.ownedNodeByIndex(addr1.address, 2)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.ownedNodeByIndex(addr2.address, 0)).tokenId).to.be.equal(node1.nodeId);
+            expect((await nodeRegistry.ownedNodeByIndex(addr2.address, 1)).tokenId).to.be.equal(node3.nodeId);
+            await expect(nodeRegistry.ownedNodeByIndex(addr2.address, 2)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            // nodeIds
+            ownernodes = await nodeRegistry.ownedNodeIds(owner.address);
+            addr1nodes = await nodeRegistry.ownedNodeIds(addr1.address);
+            addr2nodes = await nodeRegistry.ownedNodeIds(addr2.address);
+
+            expect(ownernodes[0]).to.be.equal(node5.nodeId);
+            expect(addr1nodes[0]).to.be.equal(node2.nodeId);
+            expect(addr1nodes[1]).to.be.equal(node4.nodeId);
+            expect(addr2nodes[0]).to.be.equal(node1.nodeId);
+            expect(addr2nodes[1]).to.be.equal(node3.nodeId);
+
+            // get agent nodes
+            // count
+            expect(await nodeRegistry.agentNodeCount(owner.address)).to.be.equal(2);
+            expect(await nodeRegistry.agentNodeCount(addr1.address)).to.be.equal(2);
+            expect(await nodeRegistry.agentNodeCount(addr2.address)).to.be.equal(1);
+            // nodes by index
+            expect((await nodeRegistry.agentNodeByIndex(owner.address, 0)).tokenId).to.be.equal(node3.nodeId);
+            expect((await nodeRegistry.agentNodeByIndex(owner.address, 1)).tokenId).to.be.equal(node5.nodeId);
+            await expect(nodeRegistry.agentNodeByIndex(owner.address, 2)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.agentNodeByIndex(addr1.address, 0)).tokenId).to.be.equal(node1.nodeId);
+            expect((await nodeRegistry.agentNodeByIndex(addr1.address, 1)).tokenId).to.be.equal(node4.nodeId);
+            await expect(nodeRegistry.agentNodeByIndex(addr1.address, 2)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.agentNodeByIndex(addr2.address, 0)).tokenId).to.be.equal(node2.nodeId);
+            await expect(nodeRegistry.agentNodeByIndex(addr2.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            // nodeIds
+            ownernodes = await nodeRegistry.agentNodeIds(owner.address);
+            addr1nodes = await nodeRegistry.agentNodeIds(addr1.address);
+            addr2nodes = await nodeRegistry.agentNodeIds(addr2.address);
+
+            expect(ownernodes[0]).to.be.equal(node3.nodeId);
+            expect(ownernodes[1]).to.be.equal(node5.nodeId);
+            expect(addr1nodes[0]).to.be.equal(node1.nodeId);
+            expect(addr1nodes[1]).to.be.equal(node4.nodeId);
+            expect(addr2nodes[0]).to.be.equal(node2.nodeId);
+
+            // ********************************************************  Unregister  ******************************************************** //
+            // check input value for unregister
+            await expect(nodeRegistry.connect(addr2)['burn(uint256,address)'](BigNumber.from(8), node2.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            await expect(nodeRegistry.connect(addr2)['burn(uint256,address)'](BigNumber.from(8), node1.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            await expect(nodeRegistry.connect(addr2)['burn(uint256,address)'](node1.nodeId, node2.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            await expect(nodeRegistry.connect(addr2)['burn(uint256,address)'](node1.nodeId, node1.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            await expect(nodeRegistry.connect(addr1)['burn(uint256,address)'](BigNumber.from(8), node2.owner)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(owner)['burn(uint256,address)'](node1.nodeId, node2.owner)).to.be.revertedWith("NodeRegistry: invalid node owner address");
+            // unregister with agent
+            await expect(nodeRegistry.connect(addr1)['burn(uint256,address)'](node1.nodeId, node1.owner)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node1.nodeId);
+            // unregister with owner
+            await expect(nodeRegistry.connect(owner)['burn(uint256,address)'](node2.nodeId, node2.owner)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node2.nodeId);
+            // unregister already unregistered node
+            await expect(nodeRegistry.connect(owner)['burn(uint256,address)'](node1.nodeId, node1.owner)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+
+            // ********************************************************  Check state  ******************************************************** //
+            // get node by id (nodeInfo)
+            node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
+            expect(node_1.tokenId).to.be.equal(0);
+            expect(node_1.tokenURI).to.be.equal('');
+            expect(node_1.nodeEntry).to.be.equal('');
+            expect(node_1.receiptAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_1.ownerAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_1.agentAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_1.isRevealed).to.be.equal(false);
+
+            node_2 = await nodeRegistry.nodeInfo(node2.nodeId);
+            expect(node_2.tokenId).to.be.equal(0);
+            expect(node_2.tokenURI).to.be.equal('');
+            expect(node_2.nodeEntry).to.be.equal('');
+            expect(node_2.receiptAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_2.ownerAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_2.agentAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_2.isRevealed).to.be.equal(false);
+
+            node_3 = await nodeRegistry.nodeInfo(node3.nodeId);
+            expect(node_3.tokenId).to.be.equal(node3.nodeId);
+            expect(node_3.tokenURI).to.be.equal(node3.nodeUri);
+            expect(node_3.nodeEntry).to.be.equal(node3.nodeEntry);
+            expect(node_3.receiptAddr).to.be.equal(node3.receipt);
+            expect(node_3.ownerAddr).to.be.equal(node3.owner);
+            expect(node_3.agentAddr).to.be.equal(node3.agent);
+            expect(node_3.isRevealed).to.be.equal(false);
+
+            node_4 = await nodeRegistry.nodeInfo(node4.nodeId);
+            expect(node_4.tokenId).to.be.equal(node4.nodeId);
+            expect(node_4.tokenURI).to.be.equal(node4.nodeUri);
+            expect(node_4.nodeEntry).to.be.equal(node4.nodeEntry);
+            expect(node_4.receiptAddr).to.be.equal(node4.receipt);
+            expect(node_4.ownerAddr).to.be.equal(node4.owner);
+            expect(node_4.agentAddr).to.be.equal(node4.agent);
+            expect(node_4.isRevealed).to.be.equal(false);
+
+            node_5 = await nodeRegistry.nodeInfo(node5.nodeId);
+            expect(node_5.tokenId).to.be.equal(node5.nodeId);
+            expect(node_5.tokenURI).to.be.equal(node5.nodeUri);
+            expect(node_5.nodeEntry).to.be.equal(node5.nodeEntry);
+            expect(node_5.receiptAddr).to.be.equal(node5.receipt);
+            expect(node_5.ownerAddr).to.be.equal(node5.owner);
+            expect(node_5.agentAddr).to.be.equal(node5.agent);
+            expect(node_5.isRevealed).to.be.equal(false);
+
+            // get nodes
+            // count
+            expect(await nodeRegistry.nodeCount()).to.be.equal(3);
+            // nodes by index
+            expect((await nodeRegistry.nodeByIndex(0)).tokenId).to.be.equal(node5.nodeId);
+            expect((await nodeRegistry.nodeByIndex(1)).tokenId).to.be.equal(node4.nodeId);
+            expect((await nodeRegistry.nodeByIndex(2)).tokenId).to.be.equal(node3.nodeId);
+            await expect(nodeRegistry.nodeByIndex(3)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            // nodeIds
+            nodes = await nodeRegistry.nodeIds();
+            expect(nodes.length).to.be.equal(3);
+            expect(nodes[0]).to.be.equal(node5.nodeId);
+            expect(nodes[1]).to.be.equal(node4.nodeId);
+            expect(nodes[2]).to.be.equal(node3.nodeId);
+
+            // get owend nodes
+            // count
+            expect(await nodeRegistry.ownedNodeCount(owner.address)).to.be.equal(1);
+            expect(await nodeRegistry.ownedNodeCount(addr1.address)).to.be.equal(1);
+            expect(await nodeRegistry.ownedNodeCount(addr2.address)).to.be.equal(1);
+            // nodes by index
+            expect((await nodeRegistry.ownedNodeByIndex(owner.address, 0)).tokenId).to.be.equal(node5.nodeId);
+            await expect(nodeRegistry.ownedNodeByIndex(owner.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.ownedNodeByIndex(addr1.address, 0)).tokenId).to.be.equal(node4.nodeId);
+            await expect(nodeRegistry.ownedNodeByIndex(addr1.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.ownedNodeByIndex(addr2.address, 0)).tokenId).to.be.equal(node3.nodeId);
+            await expect(nodeRegistry.ownedNodeByIndex(addr2.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            // nodeIds
+            ownernodes = await nodeRegistry.ownedNodeIds(owner.address);
+            addr1nodes = await nodeRegistry.ownedNodeIds(addr1.address);
+            addr2nodes = await nodeRegistry.ownedNodeIds(addr2.address);
+
+            expect(ownernodes[0]).to.be.equal(node5.nodeId);
+            expect(addr1nodes[0]).to.be.equal(node4.nodeId);
+            expect(addr2nodes[0]).to.be.equal(node3.nodeId);
+
+            // get agent nodes
+            // count
+            expect(await nodeRegistry.agentNodeCount(owner.address)).to.be.equal(2);
+            expect(await nodeRegistry.agentNodeCount(addr1.address)).to.be.equal(1);
+            expect(await nodeRegistry.agentNodeCount(addr2.address)).to.be.equal(0);
+            // nodes by index
+            expect((await nodeRegistry.agentNodeByIndex(owner.address, 0)).tokenId).to.be.equal(node3.nodeId);
+            expect((await nodeRegistry.agentNodeByIndex(owner.address, 1)).tokenId).to.be.equal(node5.nodeId);
+            await expect(nodeRegistry.agentNodeByIndex(owner.address, 2)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.agentNodeByIndex(addr1.address, 0)).tokenId).to.be.equal(node4.nodeId);
+            await expect(nodeRegistry.agentNodeByIndex(addr1.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            await expect(nodeRegistry.agentNodeByIndex(addr2.address, 0)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            // nodeIds
+            ownernodes = await nodeRegistry.agentNodeIds(owner.address);
+            addr1nodes = await nodeRegistry.agentNodeIds(addr1.address);
+            addr2nodes = await nodeRegistry.agentNodeIds(addr2.address);
+
+            expect(ownernodes[0]).to.be.equal(node3.nodeId);
+            expect(ownernodes[1]).to.be.equal(node5.nodeId);
+            expect(addr1nodes[0]).to.be.equal(node4.nodeId);
+
+            // ********************************************************  Update  ******************************************************** //
+            // update node
+            // check input value
+            await expect(nodeRegistry.connect(addr2)['updateNode(uint256,string,address,address)'](node4.nodeId, node4.updatednodeUri, node4.updatedReceipt, node4.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            await expect(nodeRegistry.connect(addr2)['updateNode(uint256,string,address,address)'](BigNumber.from(8), node4.updatednodeUri, node4.updatedReceipt, node4.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            await expect(nodeRegistry.connect(addr2)['updateNode(uint256,string,address,address)'](node4.nodeId, node4.updatednodeUri, node4.updatedReceipt, node3.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+
+            // register 2 more nodes
+            await expect(nodeRegistry.connect(addr1)['mint(uint256,string,string,address,address)'](node6.nodeId, node6.nodeUri, node6.nodeEntry, node6.receipt, node6.owner))
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node6.nodeId, node6.nodeUri, node6.nodeEntry, node6.receipt, node6.owner, node6.agent);
+            // add addr2 to agent
+            await expect(nodeRegistry.connect(addr2)['mint(uint256,string,string,address,address)'](node3.nodeId, node3.nodeUri, node3.nodeEntry, node3.receipt, node3.owner)).to.be.revertedWith("Agentable: caller is not agent nor owner");
+            await expect(nodeRegistry.connect(owner).addAgent(addr2.address)).to.emit(nodeRegistry, "AgentAdded").withArgs(addr2.address);
+            await expect(nodeRegistry.connect(addr2)['mint(uint256,string,string,address,address)'](node7.nodeId, node7.nodeUri, node7.nodeEntry, node7.receipt, node7.owner))
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node7.nodeId, node7.nodeUri, node7.nodeEntry, node7.receipt, node7.owner, node7.agent);
+            // check input value
+            await expect(nodeRegistry.connect(addr2)['updateNode(uint256,string,address,address)'](BigNumber.from(8), node4.updatednodeUri, node4.updatedReceipt, node4.owner)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(owner)['updateNode(uint256,string,address,address)'](node1.nodeId, node2.updatednodeUri, node4.updatedReceipt, node3.owner)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(addr2)['updateNode(uint256,string,address,address)'](node2.nodeId, node4.updatednodeUri, ethers.constants.AddressZero, node4.owner)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(addr2)['updateNode(uint256,string,address,address)'](node4.nodeId, node4.updatednodeUri, node4.updatedReceipt, node3.owner)).to.be.revertedWith("NodeRegistry: invalid node owner address");
+            await expect(nodeRegistry.connect(owner)['updateNode(uint256,string,address,address)'](node4.nodeId, node4.updatednodeUri, ethers.constants.AddressZero, node3.owner)).to.be.revertedWith("NodeRegistry: invalid node owner address");
+
+            await expect(nodeRegistry.connect(addr1)['updateNode(uint256,string,address,address)'](node4.nodeId, node2.nodeUri, node2.receipt, node4.owner)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node4.nodeId, node2.nodeUri);
+            await expect(nodeRegistry.connect(owner)['updateNode(uint256,string,address,address)'](node5.nodeId, node5.updatednodeUri, node5.updatedReceipt, node5.owner)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node5.nodeId, node5.updatednodeUri);
+            await expect(nodeRegistry.connect(addr1)['updateNode(uint256,string,address,address)'](node4.nodeId, node4.updatednodeUri, node4.updatedReceipt, node4.owner)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node4.nodeId, node4.updatednodeUri);
+            await expect(nodeRegistry.connect(addr2)['updateNode(uint256,string,address,address)'](node1.nodeId, node1.updatednodeUri, node1.updatedReceipt, node1.owner)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            // unregister
+            await expect(nodeRegistry.connect(owner)['burn(uint256,address)'](node6.nodeId, node6.owner)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node6.nodeId);
+
+            // ********************************************************  Check state  ******************************************************** //
+            // get node by id (nodeInfo)
+            node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
+            expect(node_1.tokenId).to.be.equal(0);
+            expect(node_1.tokenURI).to.be.equal('');
+            expect(node_1.nodeEntry).to.be.equal('');
+            expect(node_1.receiptAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_1.ownerAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_1.agentAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_1.isRevealed).to.be.equal(false);
+
+            node_2 = await nodeRegistry.nodeInfo(node2.nodeId);
+            expect(node_2.tokenId).to.be.equal(0);
+            expect(node_2.tokenURI).to.be.equal('');
+            expect(node_2.nodeEntry).to.be.equal('');
+            expect(node_2.receiptAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_2.ownerAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_2.agentAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_2.isRevealed).to.be.equal(false);
+
+            node_3 = await nodeRegistry.nodeInfo(node3.nodeId);
+            expect(node_3.tokenId).to.be.equal(node3.nodeId);
+            expect(node_3.tokenURI).to.be.equal(node3.nodeUri);
+            expect(node_3.nodeEntry).to.be.equal(node3.nodeEntry);
+            expect(node_3.receiptAddr).to.be.equal(node3.receipt);
+            expect(node_3.ownerAddr).to.be.equal(node3.owner);
+            expect(node_3.agentAddr).to.be.equal(node3.agent);
+            expect(node_3.isRevealed).to.be.equal(false);
+
+            node_4 = await nodeRegistry.nodeInfo(node4.nodeId);
+            expect(node_4.tokenId).to.be.equal(node4.nodeId);
+            expect(node_4.tokenURI).to.be.equal(node4.updatednodeUri);
+            expect(node_4.nodeEntry).to.be.equal(node4.nodeEntry);
+            expect(node_4.receiptAddr).to.be.equal(node4.updatedReceipt);
+            expect(node_4.ownerAddr).to.be.equal(node4.owner);
+            expect(node_4.agentAddr).to.be.equal(node4.agent);
+            expect(node_4.isRevealed).to.be.equal(false);
+
+            node_5 = await nodeRegistry.nodeInfo(node5.nodeId);
+            expect(node_5.tokenId).to.be.equal(node5.nodeId);
+            expect(node_5.tokenURI).to.be.equal(node5.updatednodeUri);
+            expect(node_5.nodeEntry).to.be.equal(node5.nodeEntry);
+            expect(node_5.receiptAddr).to.be.equal(node5.receipt); // original
+            expect(node_5.ownerAddr).to.be.equal(node5.owner);
+            expect(node_5.agentAddr).to.be.equal(node5.agent);
+            expect(node_5.isRevealed).to.be.equal(false);
+
+            node_6 = await nodeRegistry.nodeInfo(node6.nodeId);
+            expect(node_6.tokenId).to.be.equal(0);
+            expect(node_6.tokenURI).to.be.equal('');
+            expect(node_6.nodeEntry).to.be.equal('');
+            expect(node_6.receiptAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_6.ownerAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_6.agentAddr).to.be.equal(ethers.constants.AddressZero);
+            expect(node_6.isRevealed).to.be.equal(false);
+
+            node_7 = await nodeRegistry.nodeInfo(node7.nodeId);
+            expect(node_7.tokenId).to.be.equal(node7.nodeId);
+            expect(node_7.tokenURI).to.be.equal(node7.nodeUri);
+            expect(node_7.nodeEntry).to.be.equal(node7.nodeEntry);
+            expect(node_7.receiptAddr).to.be.equal(node7.receipt);
+            expect(node_7.ownerAddr).to.be.equal(node7.owner);
+            expect(node_7.agentAddr).to.be.equal(node7.agent);
+            expect(node_7.isRevealed).to.be.equal(false);
+
+            // get nodes
+            // count
+            expect(await nodeRegistry.nodeCount()).to.be.equal(4);
+            // nodes by index
+            expect((await nodeRegistry.nodeByIndex(0)).tokenId).to.be.equal(node5.nodeId);
+            expect((await nodeRegistry.nodeByIndex(1)).tokenId).to.be.equal(node4.nodeId);
+            expect((await nodeRegistry.nodeByIndex(2)).tokenId).to.be.equal(node3.nodeId);
+            expect((await nodeRegistry.nodeByIndex(3)).tokenId).to.be.equal(node7.nodeId);
+            await expect(nodeRegistry.nodeByIndex(4)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            // nodeIds
+            nodes = await nodeRegistry.nodeIds();
+            expect(nodes.length).to.be.equal(4);
+            expect(nodes[0]).to.be.equal(node5.nodeId);
+            expect(nodes[1]).to.be.equal(node4.nodeId);
+            expect(nodes[2]).to.be.equal(node3.nodeId);
+            expect(nodes[3]).to.be.equal(node7.nodeId);
+
+            // get owend nodes
+            // count
+            expect(await nodeRegistry.ownedNodeCount(owner.address)).to.be.equal(1);
+            expect(await nodeRegistry.ownedNodeCount(addr1.address)).to.be.equal(2);
+            expect(await nodeRegistry.ownedNodeCount(addr2.address)).to.be.equal(1);
+            // nodes by index
+            expect((await nodeRegistry.ownedNodeByIndex(owner.address, 0)).tokenId).to.be.equal(node5.nodeId);
+            await expect(nodeRegistry.ownedNodeByIndex(owner.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.ownedNodeByIndex(addr1.address, 0)).tokenId).to.be.equal(node4.nodeId);
+            expect((await nodeRegistry.ownedNodeByIndex(addr1.address, 1)).tokenId).to.be.equal(node7.nodeId);
+            await expect(nodeRegistry.ownedNodeByIndex(addr1.address, 2)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.ownedNodeByIndex(addr2.address, 0)).tokenId).to.be.equal(node3.nodeId);
+            await expect(nodeRegistry.ownedNodeByIndex(addr2.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            // nodeIds
+            ownernodes = await nodeRegistry.ownedNodeIds(owner.address);
+            addr1nodes = await nodeRegistry.ownedNodeIds(addr1.address);
+            addr2nodes = await nodeRegistry.ownedNodeIds(addr2.address);
+
+            expect(ownernodes[0]).to.be.equal(node5.nodeId);
+            expect(addr1nodes[0]).to.be.equal(node4.nodeId);
+            expect(addr1nodes[1]).to.be.equal(node7.nodeId);
+            expect(addr2nodes[0]).to.be.equal(node3.nodeId);
+
+            // get agent nodes
+            // count
+            expect(await nodeRegistry.agentNodeCount(owner.address)).to.be.equal(2);
+            expect(await nodeRegistry.agentNodeCount(addr1.address)).to.be.equal(1);
+            expect(await nodeRegistry.agentNodeCount(addr2.address)).to.be.equal(1);
+            // nodes by index
+            expect((await nodeRegistry.agentNodeByIndex(owner.address, 0)).tokenId).to.be.equal(node3.nodeId);
+            expect((await nodeRegistry.agentNodeByIndex(owner.address, 1)).tokenId).to.be.equal(node5.nodeId);
+            await expect(nodeRegistry.agentNodeByIndex(owner.address, 2)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.agentNodeByIndex(addr1.address, 0)).tokenId).to.be.equal(node4.nodeId);
+            await expect(nodeRegistry.agentNodeByIndex(addr1.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            expect((await nodeRegistry.agentNodeByIndex(addr2.address, 0)).tokenId).to.be.equal(node7.nodeId);
+            await expect(nodeRegistry.agentNodeByIndex(addr2.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
+            // nodeIds
+            ownernodes = await nodeRegistry.agentNodeIds(owner.address);
+            addr1nodes = await nodeRegistry.agentNodeIds(addr1.address);
+            addr2nodes = await nodeRegistry.agentNodeIds(addr2.address);
+
+            expect(ownernodes[0]).to.be.equal(node3.nodeId);
+            expect(ownernodes[1]).to.be.equal(node5.nodeId);
+            expect(addr1nodes[0]).to.be.equal(node4.nodeId);
+            expect(addr2nodes[0]).to.be.equal(node7.nodeId);
+        });
     });
 });
