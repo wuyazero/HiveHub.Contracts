@@ -984,5 +984,92 @@ describe("NodeRegistry Contract", function () {
             expect(addr1nodes[0]).to.be.equal(node4.nodeId);
             expect(addr2nodes[0]).to.be.equal(node7.nodeId);
         });
+
+        it("Should be able to reveal / transfer nodes by agent", async function () {
+            const registerFee = parseEther('1');
+            const node1 = { agent: addr2.address, owner: addr1.address, nodeId: BigNumber.from(1), nodeUri: "first node uri", nodeEntry: "first node entry", receipt: receipt1.address, quoteToken: ethers.constants.AddressZero, value: registerFee, price: registerFee, fee: registerFee, updatednodeUri: "updated first node uri", updatedReceipt: receipt1.address }; // Native token (value != 0)
+            const node2 = { agent: addr2.address, owner: addr1.address, nodeId: BigNumber.from(2), nodeUri: "second node uri", nodeEntry: "second node entry", receipt: receipt2.address, quoteToken: ethers.constants.AddressZero, value: 0, price: registerFee, fee: registerFee, updatednodeUri: "updated second node uri", updatedReceipt: receipt1.address }; // Native token (value == 0)
+            let node_1;
+
+            // ********************************************************  Register  ******************************************************** //
+            // add agent
+            await expect(nodeRegistry.connect(owner).addAgent(addr2.address)).to.emit(nodeRegistry, "AgentAdded").withArgs(addr2.address);
+            // register
+            await expect(nodeRegistry.connect(addr2)['mint(uint256,string,string,address,address)'](node1.nodeId, node1.nodeUri, node1.nodeEntry, node1.receipt, node1.owner))
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry, node1.receipt, node1.owner, node1.agent);
+            // ********************************************************  Reveal node  ******************************************************** //
+            // Transfer node before reveal node
+            await expect(nodeRegistry.connect(owner).transferFrom(addr1.address, addr2.address, node1.nodeId)).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
+            await expect(nodeRegistry.connect(addr1).transferFrom(addr1.address, addr2.address, node1.nodeId)).to.be.revertedWith("NodeRegistry: node is not revealed");
+
+            // Reveal node
+                // check input value
+            await expect(nodeRegistry.connect(addr1).revealNode(BigNumber.from("8"))).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(addr1).revealNode(BigNumber.from("1"))).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(owner).revealNode(BigNumber.from("0"))).to.be.revertedWith("NodeRegistry: invalid nodeId");
+                // reveal node
+            await expect(nodeRegistry.connect(owner).revealNode(node1.nodeId)).to.emit(nodeRegistry, "NodeRevealed").withArgs(node1.nodeId);
+
+            // Transfer node like this: addr1 -> addr2 -> owner -> addr2
+            // ********************************************************  Transfer node  ******************************************************** //
+            // Transfer (addr1 => addr2)
+            await expect(nodeRegistry.connect(owner).transferFrom(addr1.address, addr2.address, node1.nodeId)).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
+            await expect(nodeRegistry.connect(addr1).transferFrom(addr1.address, addr2.address, node1.nodeId)).to.emit(nodeRegistry, "Transfer").withArgs(addr1.address, addr2.address, node1.nodeId);
+            // check state            
+            node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
+            expect(node_1.tokenId).to.be.equal(node1.nodeId);
+            expect(node_1.tokenURI).to.be.equal(node1.nodeUri);
+            expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
+            expect(node_1.receiptAddr).to.be.equal(node1.receipt);
+            expect(node_1.ownerAddr).to.be.equal(addr2.address);
+            expect(node_1.agentAddr).to.be.equal(addr2.address);
+            expect(node_1.isRevealed).to.be.equal(true);
+            // Transfer (addr2 => owner)
+            await expect(nodeRegistry.connect(addr1).approve(addr1.address, node1.nodeId)).to.be.revertedWith("ERC721: approve caller is not owner nor approved for all");
+            await expect(nodeRegistry.connect(addr2).approve(addr1.address, node1.nodeId)).to.emit(nodeRegistry, "Approval").withArgs(addr2.address, addr1.address, node1.nodeId);
+            await expect(nodeRegistry.connect(addr1).transferFrom(addr2.address, owner.address, node1.nodeId)).to.emit(nodeRegistry, "Transfer").withArgs(addr2.address, owner.address, node1.nodeId);
+            // check state            
+            node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
+            expect(node_1.tokenId).to.be.equal(node1.nodeId);
+            expect(node_1.tokenURI).to.be.equal(node1.nodeUri);
+            expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
+            expect(node_1.receiptAddr).to.be.equal(node1.receipt);
+            expect(node_1.ownerAddr).to.be.equal(owner.address);
+            expect(node_1.agentAddr).to.be.equal(addr2.address);
+            expect(node_1.isRevealed).to.be.equal(true);
+            // Transfer (owner => addr2)
+            await expect(nodeRegistry.connect(addr2).approve(addr1.address, node1.nodeId)).to.be.revertedWith("ERC721: approve caller is not owner nor approved for all");
+            await expect(nodeRegistry.connect(owner).setApprovalForAll(addr1.address, true)).to.emit(nodeRegistry, "ApprovalForAll").withArgs(owner.address, addr1.address, true);
+            await expect(nodeRegistry.connect(addr1).approve(addr2.address, node1.nodeId)).to.emit(nodeRegistry, "Approval").withArgs(owner.address, addr2.address, node1.nodeId);
+            await expect(nodeRegistry.connect(addr2).transferFrom(owner.address, addr2.address, node1.nodeId)).to.emit(nodeRegistry, "Transfer").withArgs(owner.address, addr2.address, node1.nodeId);
+            // check state            
+            node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
+            expect(node_1.tokenId).to.be.equal(node1.nodeId);
+            expect(node_1.tokenURI).to.be.equal(node1.nodeUri);
+            expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
+            expect(node_1.receiptAddr).to.be.equal(node1.receipt);
+            expect(node_1.ownerAddr).to.be.equal(addr2.address);
+            expect(node_1.agentAddr).to.be.equal(addr2.address);
+            expect(node_1.isRevealed).to.be.equal(true);
+
+            // ********************************************************  Update  ******************************************************** //
+            await expect(nodeRegistry.connect(addr1)['updatenode(uint256,string,address)'](node1.nodeId, node2.nodeUri, node2.receipt)).to.be.revertedWith("NodeRegistry: caller is not node owner");
+            await expect(nodeRegistry.connect(addr2)['updatenode(uint256,string,address)'](node1.nodeId, node2.nodeUri, node2.receipt))
+                .to.emit(nodeRegistry, "NodeUpdated").withArgs(node1.nodeId, node2.nodeUri);
+
+            // ********************************************************  Check node state  ******************************************************** //
+            node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
+            expect(node_1.tokenId).to.be.equal(node1.nodeId);
+            expect(node_1.tokenURI).to.be.equal(node2.nodeUri);
+            expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
+            expect(node_1.receiptAddr).to.be.equal(node2.receipt);
+            expect(node_1.ownerAddr).to.be.equal(addr2.address);
+            expect(node_1.agentAddr).to.be.equal(addr2.address);
+            expect(node_1.isRevealed).to.be.equal(true);
+            // ********************************************************  Unregister  ******************************************************** //
+            await expect(nodeRegistry.connect(addr1)['burn(uint256)'](node1.nodeId)).to.be.revertedWith("NodeRegistry: caller is not node owner or contract owner");
+            // unregister with node owner
+            await expect(nodeRegistry.connect(addr2)['burn(uint256)'](node1.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node1.nodeId);
+        });
     });
 });
