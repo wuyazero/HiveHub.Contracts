@@ -1117,5 +1117,17 @@ describe("NodeRegistry Contract", function () {
             expect(await nodeRegistry.isAgent(addr1.address)).to.be.equal(false);
             expect(await nodeRegistry.isAgent(addr2.address)).to.be.equal(false);
         });
+
+        it("Should be able to manage categories uri", async function () {
+            const updatedCategoryUri = "updated node uri";
+
+            // check inital categoriesURI
+            expect(await nodeRegistry.getCategoryList()).to.be.equal(categoriesURI);
+            // check input value
+            await expect(nodeRegistry.connect(addr1).setCategoryList(updatedCategoryUri)).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(owner).setCategoryList(updatedCategoryUri)).to.emit(nodeRegistry, "CategoryURIUpdated").withArgs(updatedCategoryUri);
+            // check updated categoriesURI
+            expect(await nodeRegistry.getCategoryList()).to.be.equal(updatedCategoryUri);
+        });
     });
 });
