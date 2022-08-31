@@ -1149,5 +1149,16 @@ describe("NodeRegistry Contract", function () {
             const updatedPlatformAddr = await nodeRegistry.platformAddress();
             expect(updatedPlatformAddr).to.be.equal(addr2.address);
         });
+
+        it("Should be able to upgrade proxy contract", async function () {
+            mockNR = await upgrades.upgradeProxy(nodeRegistry.address, MockNR);
+            console.log("Original proxy contract deployed to: ", nodeRegistry.address);
+            console.log("Upgraded proxy contract deployed to: ", mockNR.address);
+            expect(nodeRegistry.address).to.be.equal(mockNR.address);
+
+            const updatedVersion = 2;
+            expect(await mockNR.setVersion(updatedVersion)).to.emit(mockNR, "VersionUpdated").withArgs(updatedVersion);
+            expect(await mockNR.getVersion()).to.be.equal(updatedVersion);
+        });
     });
 });
