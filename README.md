@@ -1,4 +1,4 @@
-# HIVEHUB NODE REGISTRY CONTRACT
+# HIVEHUB CONTRACTS
 
 ### Introduction
 HiveHub Node Registry Contract
