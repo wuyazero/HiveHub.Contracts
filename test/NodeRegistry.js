@@ -426,10 +426,10 @@ describe("NodeRegistry Contract", function () {
 
             // Reveal node
             // check input value
-            await expect(nodeRegistry.connect(addr1).revealNode()).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(addr1).reveal()).to.be.revertedWith("Ownable: caller is not the owner");
             // reveal node
-            await expect(nodeRegistry.connect(owner).revealNode()).to.emit(nodeRegistry, "NodeRevealed").withArgs(1);
-            await expect(nodeRegistry.connect(owner).revealNode()).to.be.revertedWith("NodeRegistry: node is already revealed");
+            await expect(nodeRegistry.connect(owner).reveal()).to.emit(nodeRegistry, "Revealed").withArgs(1);
+            await expect(nodeRegistry.connect(owner).reveal()).to.be.revertedWith("NodeRegistry: node is already revealed");
             expect(await nodeRegistry.isRevealed()).to.be.equal(1);
             // Transfer node like this: addr1 -> addr2 -> owner -> addr2
             // ********************************************************  Transfer node  ******************************************************** //
