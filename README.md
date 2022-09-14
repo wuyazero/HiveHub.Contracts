@@ -1,9 +1,7 @@
-# ELASTOS HIVE NODE REGISTRY CONTRACT
+# HIVEHUB NODE REGISTRY CONTRACT
 
 ### Introduction
-Elastos Hive Node Registry Contract
-
-
+HiveHub Node Registry Contract
 
 ### HowTo
 
@@ -11,7 +9,7 @@ Elastos Hive Node Registry Contract
 Clone the repository onto your local device, and install all depedencies
 
 ```shell
-$ git clone https://github.com/elastos-trinity/NodeRegistry.git
+$ git clone https://github.com/elastos-trinity/HiveHub.Contracts.git
 $ npm install
 ```
 
@@ -62,7 +60,6 @@ Run the following command in the terminal to start testing on testnet enviroment
 ```shell
 $ npx hardhat test
 ```
-
 
 - Deploy contracts
 Deploy contracts by running such command in terminal
