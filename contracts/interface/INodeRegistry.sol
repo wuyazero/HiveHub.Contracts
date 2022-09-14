@@ -13,8 +13,8 @@ interface INodeRegistry is IERC721 {
         address receiptAddr;
         address ownerAddr;
     }
-    function mint(uint256 tokenId, string memory tokenURI, string memory nodeEntry, address quoteToken, uint256 mintFee) external payable;
-    function mint(uint256 tokenId, string memory tokenURI, string memory nodeEntry, address receiptAddr, address quoteToken, uint256 mintFee) external payable;
+    function mint(uint256 tokenId, string memory tokenURI, string memory nodeEntry) external payable;
+    function mint(uint256 tokenId, string memory tokenURI, string memory nodeEntry, address receiptAddr) external payable;
     function burn(uint256 tokenId) external;
     function updateNode(uint256 tokenId, string memory tokenURI, address receiptAddr) external;
     function revealNode() external;
@@ -27,9 +27,9 @@ interface INodeRegistry is IERC721 {
     function ownedNodeByIndex(address ownerAddr, uint256 index) external view returns (Node memory);
     function ownedNodeIds(address ownerAddr) external view returns (bytes32[] memory);
     function isValidNodeId(uint256 tokenId) external view returns (bool);
-    function setPlatformAddr(address platformAddr) external;
-    function platformAddress() external view returns (address);
-    event RegisteredFees(uint256 tokenId, address platformAddr, address quoteToken, uint256 registerFee);
+    function setPlatformFee(address platformAddr, uint256 platformFee) external;
+    function getPlatformFee() external view returns (address platformAddress, uint256 platformFee);
+    event RegisteredFees(uint256 tokenId, address platformAddr, uint256 registerFee);
     event NodeRegistered(uint256 tokenId, string tokenURI, string nodeEntry, address receiptAddr, address ownerAddr);
     event NodeUnregistered(uint256 tokenId);
     event NodeUpdated(uint256 tokenId, string newNodeURI);
