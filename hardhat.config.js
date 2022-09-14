@@ -29,7 +29,6 @@ module.exports = {
   parameters: {
     deployment: {
       PlatformAddress: '', // Platform Fee Address of the Node Registry Contract 
-      CategoryURI: '', // Category URI of the Node Registry Contract
       WithProxy: true, // Set true for new proxy contract deployment, set false for updates  
       ContractAddress: '', // Deployed proxy contract address of the Node Registry Contract
     },
@@ -39,5 +38,4 @@ module.exports = {
       testAddress3: '',
     },
   }
-
 };
