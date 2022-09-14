@@ -33,6 +33,6 @@ interface INodeRegistry is IERC721 {
     event NodeRegistered(uint256 tokenId, string tokenURI, string nodeEntry, address receiptAddr, address ownerAddr);
     event NodeUnregistered(uint256 tokenId);
     event NodeUpdated(uint256 tokenId, string newNodeURI);
-    event NodeRevealed(uint256 state);
+    event Revealed(uint256 state);
     event PlatformFeeChanged(address platformAddress,uint256 platformFee);
 }
