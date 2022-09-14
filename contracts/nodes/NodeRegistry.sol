@@ -18,13 +18,11 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      * @notice RegisterFee is chareged on registeration.
      * @param tokenId Node unique Id.
      * @param platformAddr Platform address to receive register fees.
-     * @param quoteToken ERC20 token address or native token (ELA) with 0x0
      * @param registerFee Register fee.
      */
     event RegisteredFees(
         uint256 tokenId,
         address platformAddr,
-        address quoteToken,
         uint256 registerFee
     );
 
@@ -71,9 +69,11 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
     /**
      * @dev MUST emit when platform fee config is updated.
      * The `platformAddress` argument MUST be the address of the platform.
+     * The `platformFee` argument MUST be the fee rate of the platform.
      */
     event PlatformFeeChanged(
-        address platformAddress
+        address platformAddress,
+        uint256 platformFee
     );
 
     struct Node {
@@ -87,6 +87,7 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
     string private constant _name = "Hive Node Token Collection";
     string private constant _symbol = "HNTC";
     uint256 private _isRevealed;
+    uint256 private _platformFee;
     address private _platformAddr;
     mapping(uint256 => Node) private _allTokens;
     EnumerableSet.UintSet private _tokens;
@@ -94,13 +95,14 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
     /**
      * @notice Initialize a node registry contract with platform address info.
      * @param platformAddress_ platform address.
+     * @param platformFee_ platform fee.
      */
-    function initialize(address platformAddress_) external initializer {
+    function initialize(address platformAddress_, uint256 platformFee_) external initializer {
         __Ownable_init();
         __ERC721_init(_name, _symbol);
         require(
-            _setPlatformAddr(platformAddress_),
-            "NodeRegistry: initialize platform address failed"
+            _setPlatformAddr(platformAddress_, platformFee_),
+            "NodeRegistry: initialize platform fee failed"
         );
     }
 
@@ -109,17 +111,13 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      * @param tokenId Node unique Id.
      * @param tokenURI Node uri.
      * @param nodeEntry Node entry.
-     * @param quoteToken address of quote token.
-     * @param mintFee amount of ERC20 token.
      */
      function mint(
         uint256 tokenId,   // nodeId
         string memory tokenURI,  // nodeURI
-        string memory nodeEntry,
-        address quoteToken,
-        uint256 mintFee
+        string memory nodeEntry
     ) external payable nonReentrant {
-        _mintByWallet(tokenId, tokenURI, nodeEntry, msg.sender, quoteToken, mintFee);
+        _mintByWallet(tokenId, tokenURI, nodeEntry, msg.sender);
     }
 
     /**
@@ -128,18 +126,14 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      * @param tokenURI Node uri.
      * @param nodeEntry Node entry.
      * @param receiptAddr ESC address to receive tipping or other payments.
-     * @param quoteToken address of quote token.
-     * @param mintFee amount of ERC20 token.
      */
     function mint(
         uint256 tokenId,   //nodeId
         string memory tokenURI,  //nodeURI
         string memory nodeEntry,
-        address receiptAddr,
-        address quoteToken,
-        uint256 mintFee
+        address receiptAddr
     ) external payable nonReentrant {
-        _mintByWallet(tokenId, tokenURI, nodeEntry, receiptAddr, quoteToken, mintFee);
+        _mintByWallet(tokenId, tokenURI, nodeEntry, receiptAddr);
     }
 
     /**
@@ -148,57 +142,27 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      * @param tokenURI Node uri.
      * @param nodeEntry Node entry.
      * @param receiptAddr ESC address to receive tipping or other payments.
-     * @param quoteToken address of quote token.
-     * @param mintFee amount of ERC20 token.
      */
     function _mintByWallet(
         uint256 tokenId,
         string memory tokenURI,
         string memory nodeEntry,
-        address receiptAddr,
-        address quoteToken,
-        uint256 mintFee
+        address receiptAddr
     ) internal virtual {
         require(
             receiptAddr != address(0),
             "NodeRegistry: invalid receipt address"
         );
-
-        uint256 registerFee = quoteToken == address(0) ? msg.value : mintFee;
-        if (quoteToken == address(0)) {
-            if (registerFee > 0) {
-                bool success;
-                (success, ) = payable(_platformAddr).call{value: registerFee}("");
-                require(success, "NodeRegistry: register fee transfer failed");
-            }
-        } else {
-            require( msg.value == 0,
-                "NodeRegistry: Do not pay ETH when register with ERC20 token"
-            );
-            if (registerFee > 0) {
-                require(
-                    IERC20(quoteToken).allowance(msg.sender, address(this)) >= registerFee,
-                    "NodeRegistry: Not enough quote token approved for the register"
-                );
-
-                uint256 beforeBalance = IERC20(quoteToken).balanceOf(address(msg.sender));
-                require(
-                    IERC20(quoteToken).transferFrom(msg.sender, _platformAddr, registerFee),
-                    "NodeRegistry: register fee transfer failed"
-                );
-                require(
-                    beforeBalance.sub(IERC20(quoteToken).balanceOf(address(msg.sender))) == registerFee,
-                    "NodeRegistry: Non-standard ERC20 token not supported"
-                );
-            }
+        require(
+            msg.value == _platformFee,
+            "NodeRegistry: incorrect register fee" 
+        );
+        if (msg.value > 0) {
+            bool success;
+            (success, ) = payable(_platformAddr).call{value: msg.value}("");
+            require(success, "NodeRegistry: register fee transfer failed");
         }
-
-        emit RegisteredFees(
-                tokenId,
-                _platformAddr,
-                quoteToken,
-                registerFee
-            );
+        emit RegisteredFees(tokenId, _platformAddr, msg.value);
         _mintNewNode(tokenId, tokenURI, nodeEntry, receiptAddr, msg.sender);
     }
 
@@ -442,38 +406,44 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
 
     /**
      * @dev Set platform fee config.
-     * @param platformAddr address of platform
+     * @param platformAddr Address of platform
+     * @param platformFee Platform Fee
      */
-    function setPlatformAddr(
-        address platformAddr
+    function setPlatformFee(
+        address platformAddr,
+        uint256 platformFee
     ) external onlyOwner {
         require(
-            _setPlatformAddr(platformAddr), 
-            "NodeRegistry: set platform address failed"
+            _setPlatformAddr(platformAddr, platformFee), 
+            "NodeRegistry: set platform fee failed"
         );
     }
 
     /**
      * @dev Set platform address config.
-     * @param platformAddr address of platform
+     * @param platformAddr Address of platform
+     * @param platformFee Platform Fee
      * @return success success or failed
      */
-    function _setPlatformAddr(address platformAddr) internal returns (bool) {
+    function _setPlatformAddr(address platformAddr, uint256 platformFee) internal returns (bool) {
         require(
             platformAddr != address(0),
             "NodeRegistry: invalid platform address"
         );
         _platformAddr = platformAddr;
-        emit PlatformFeeChanged(platformAddr);
+        _platformFee = platformFee;
+        emit PlatformFeeChanged(platformAddr, platformFee);
         return true;
     }
 
     /**
      * @dev Get platform address config
      * @return platformAddress address of platform
+     * @return platformFee platform fee
      */
-    function platformAddress() external view returns (address) {
-        return _platformAddr;
+    function getPlatformFee() external view returns (address platformAddress, uint256 platformFee) {
+        platformAddress = _platformAddr;
+        platformFee = _platformFee;
     }
 
     receive() external payable {}
