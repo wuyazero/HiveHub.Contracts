@@ -64,7 +64,7 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      * @notice Node revealed event
      * @param state Revealed state, 1 for true, 0 for false
      */
-    event revealed(uint256 state);
+    event Revealed(uint256 state);
 
     /**
      * @dev MUST emit when platform fee config is updated.
@@ -284,7 +284,7 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
     function reveal() external nonReentrant onlyOwner {
         require(_isRevealed == 0, "NodeRegistry: node is already revealed");
         _isRevealed = 1;
-        emit revealed(1);
+        emit Revealed(1);
     }
 
     /**
