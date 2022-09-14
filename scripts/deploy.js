@@ -15,11 +15,15 @@ async function main() {
     console.log("Platform address is not set.");
     return ;
   }
+  if (!config.parameters.deployment.PlatformFee) {
+    console.log("Platform fee is not set.");
+    return ;
+  }
   // deploy proxy contract
   const NodeRegistry = await ethers.getContractFactory("NodeRegistry");
   let proxiedNodeRegisty;
   if (config.parameters.deployment.WithProxy) {
-    proxiedNodeRegisty = await upgrades.deployProxy(NodeRegistry, [config.parameters.deployment.PlatformAddress]);
+    proxiedNodeRegisty = await upgrades.deployProxy(NodeRegistry, [config.parameters.deployment.PlatformAddress, config.parameters.deployment.PlatformFee]);
     await proxiedNodeRegisty.deployed();
   }
   else {

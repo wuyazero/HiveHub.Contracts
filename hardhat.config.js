@@ -28,7 +28,8 @@ module.exports = {
   },
   parameters: {
     deployment: {
-      PlatformAddress: '', // Platform Fee Address of the Node Registry Contract 
+      PlatformAddress: '', // Platform Address of the Node Registry Contract 
+      PlatformFee: 0, // Platform Fee of the Node Registry Contract 
       WithProxy: true, // Set true for new proxy contract deployment, set false for updates  
       ContractAddress: '', // Deployed proxy contract address of the Node Registry Contract
     },
