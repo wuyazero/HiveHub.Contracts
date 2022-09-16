@@ -27,16 +27,16 @@ describe("NodeRegistry Contract", function () {
     describe("Deployments", function () {
         it("Should be able to register / unregister / update nodes by personal wallet", async function () {
             const registerFee = platformFee;
-            const node1 = { owner: addr1.address, nodeId: BigNumber.from("1"), nodeUri: "first node uri", nodeEntry: "first node entry", fee: registerFee, updatedNodeUri: "updated first node uri" };
-            const node2 = { owner: addr2.address, nodeId: BigNumber.from("2"), nodeUri: "second node uri", nodeEntry: "second node entry", fee: registerFee, updatedNodeUri: "updated second node uri" };
-            const node3 = { owner: owner.address, nodeId: BigNumber.from("3"), nodeUri: "third node uri", nodeEntry: "third node entry", fee: registerFee, updatedNodeUri: "updated third node uri" };
-            const node4 = { owner: addr1.address, nodeId: BigNumber.from("4"), nodeUri: "fourth node uri", nodeEntry: "fourth node entry", fee: 0, updatedNodeUri: "updated fourth node uri" };
-            const node5 = { owner: owner.address, nodeId: BigNumber.from("5"), nodeUri: "fifth node uri", nodeEntry: "fifth node entry", fee: 0, updatedNodeUri: node1.nodeUri };
-            const node6 = { owner: addr1.address, nodeId: BigNumber.from("6"), nodeUri: "sixth node uri", nodeEntry: "sixth node entry", fee: registerFee, updatedNodeUri: "updated sixth node uri" };
-            const node7 = { owner: addr2.address, nodeId: BigNumber.from("7"), nodeUri: "seventh node uri", nodeEntry: "seventh node entry", fee: registerFee, updatedNodeUri: "updated seventh node uri" };
+            const node1 = { nodeId: BigNumber.from("1"), nodeUri: "first node uri", nodeEntry: "first node entry", fee: registerFee, updatedNodeUri: "updated first node uri" };
+            const node2 = { nodeId: BigNumber.from("2"), nodeUri: "second node uri", nodeEntry: "second node entry", fee: registerFee, updatedNodeUri: "updated second node uri" };
+            const node3 = { nodeId: BigNumber.from("3"), nodeUri: "third node uri", nodeEntry: "third node entry", fee: registerFee, updatedNodeUri: "updated third node uri" };
+            const node4 = { nodeId: BigNumber.from("4"), nodeUri: "fourth node uri", nodeEntry: "fourth node entry", fee: 0, updatedNodeUri: "updated fourth node uri" };
+            const node5 = { nodeId: BigNumber.from("5"), nodeUri: "fifth node uri", nodeEntry: "fifth node entry", fee: 0, updatedNodeUri: node1.nodeUri };
+            const node6 = { nodeId: BigNumber.from("6"), nodeUri: "sixth node uri", nodeEntry: "sixth node entry", fee: registerFee, updatedNodeUri: "updated sixth node uri" };
+            const node7 = { nodeId: BigNumber.from("7"), nodeUri: "seventh node uri", nodeEntry: "seventh node entry", fee: registerFee, updatedNodeUri: "updated seventh node uri" };
 
             let preBalanceAddr1, preBalanceAddr2, preBalanceContract, preBalancePlat, preBalanceOwner;
-            let nodes, node_1, node_2, node_3, node_4, node_5, node_6, node_7, ownernodes, addr1nodes, addr2nodes;
+            let nodes, node_1, node_2, node_3, node_4, node_5, node_6, node_7, ownerNodes, addr1Nodes, addr2Nodes;
 
             // ********************************************************  Register  ******************************************************** //
             // check platform fee config
@@ -53,7 +53,7 @@ describe("NodeRegistry Contract", function () {
             // register
             await expect(nodeRegistry.connect(addr1).mint(node1.nodeId, node1.nodeUri, node1.nodeEntry, { value: node1.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node1.nodeId, platform.address, node1.fee)
-                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry, node1.owner);
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry);
             // check balance
             expect(preBalanceAddr1.sub(await provider.getBalance(addr1.address)).sub(node1.fee) / 1e18).to.be.greaterThan(0);
             expect((await provider.getBalance(platform.address)).sub(preBalancePlat)).to.be.equal(node1.fee);
@@ -69,7 +69,7 @@ describe("NodeRegistry Contract", function () {
             preBalancePlat = await provider.getBalance(platform.address);
             await expect(nodeRegistry.connect(addr2).mint(node2.nodeId, node2.nodeUri, node2.nodeEntry, { value: node2.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node2.nodeId, platform.address, node2.fee)
-                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node2.nodeId, node2.nodeUri, node2.nodeEntry, node2.owner);
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node2.nodeId, node2.nodeUri, node2.nodeEntry);
             // check balance
             expect(preBalanceAddr2.sub(await provider.getBalance(addr2.address)).sub(node2.fee) / 1e18).to.be.greaterThan(0);
             expect((await provider.getBalance(platform.address)).sub(preBalancePlat)).to.be.equal(node2.fee);
@@ -82,7 +82,7 @@ describe("NodeRegistry Contract", function () {
             preBalancePlat = await provider.getBalance(platform.address);
             await expect(nodeRegistry.connect(owner).mint(node3.nodeId, node3.nodeUri, node3.nodeEntry, { value: node3.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node3.nodeId, platform.address, node3.fee)
-                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node3.nodeId, node3.nodeUri, node3.nodeEntry, node3.owner);
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node3.nodeId, node3.nodeUri, node3.nodeEntry);
             // check balance
             expect(preBalanceOwner.sub(await provider.getBalance(owner.address)).sub(node3.fee) / 1e18).to.be.greaterThan(0);
             expect((await provider.getBalance(platform.address)).sub(preBalancePlat)).to.be.equal(node3.fee);
@@ -102,7 +102,7 @@ describe("NodeRegistry Contract", function () {
             preBalancePlat = await provider.getBalance(platform.address);
             await expect(nodeRegistry.connect(addr1).mint(node4.nodeId, node4.nodeUri, node4.nodeEntry, { value: node4.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node4.nodeId, platform.address, node4.fee)
-                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node4.nodeId, node4.nodeUri, node4.nodeEntry, node4.owner);
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node4.nodeId, node4.nodeUri, node4.nodeEntry);
             // check balance
             expect(preBalanceAddr1.sub(await provider.getBalance(addr1.address)) / 1e18).to.be.greaterThan(0);
             expect((await provider.getBalance(platform.address))).to.be.equal(preBalancePlat);
@@ -115,7 +115,7 @@ describe("NodeRegistry Contract", function () {
             preBalancePlat = await provider.getBalance(platform.address);
             await expect(nodeRegistry.connect(owner).mint(node5.nodeId, node5.nodeUri, node5.nodeEntry, { value: node5.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node5.nodeId, platform.address, node5.fee)
-                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node5.nodeId, node5.nodeUri, node5.nodeEntry, node5.owner);
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node5.nodeId, node5.nodeUri, node5.nodeEntry);
             // check balance
             expect(preBalanceOwner.sub(await provider.getBalance(owner.address)) / 1e18).to.be.greaterThan(0);
             expect((await provider.getBalance(platform.address))).to.be.equal(preBalancePlat);
@@ -127,31 +127,26 @@ describe("NodeRegistry Contract", function () {
             expect(node_1.tokenId).to.be.equal(node1.nodeId);
             expect(node_1.tokenURI).to.be.equal(node1.nodeUri);
             expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
-            expect(node_1.ownerAddr).to.be.equal(node1.owner);
 
             node_2 = await nodeRegistry.nodeInfo(node2.nodeId);
             expect(node_2.tokenId).to.be.equal(node2.nodeId);
             expect(node_2.tokenURI).to.be.equal(node2.nodeUri);
             expect(node_2.nodeEntry).to.be.equal(node2.nodeEntry);
-            expect(node_2.ownerAddr).to.be.equal(node2.owner);
 
             node_3 = await nodeRegistry.nodeInfo(node3.nodeId);
             expect(node_3.tokenId).to.be.equal(node3.nodeId);
             expect(node_3.tokenURI).to.be.equal(node3.nodeUri);
             expect(node_3.nodeEntry).to.be.equal(node3.nodeEntry);
-            expect(node_3.ownerAddr).to.be.equal(node3.owner);
 
             node_4 = await nodeRegistry.nodeInfo(node4.nodeId);
             expect(node_4.tokenId).to.be.equal(node4.nodeId);
             expect(node_4.tokenURI).to.be.equal(node4.nodeUri);
             expect(node_4.nodeEntry).to.be.equal(node4.nodeEntry);
-            expect(node_4.ownerAddr).to.be.equal(node4.owner);
 
             node_5 = await nodeRegistry.nodeInfo(node5.nodeId);
             expect(node_5.tokenId).to.be.equal(node5.nodeId);
             expect(node_5.tokenURI).to.be.equal(node5.nodeUri);
             expect(node_5.nodeEntry).to.be.equal(node5.nodeEntry);
-            expect(node_5.ownerAddr).to.be.equal(node5.owner);
 
             // get nodes
             // count
@@ -187,15 +182,15 @@ describe("NodeRegistry Contract", function () {
             expect((await nodeRegistry.ownedNodeByIndex(addr2.address, 0)).tokenId).to.be.equal(node2.nodeId);
             await expect(nodeRegistry.ownedNodeByIndex(addr2.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
             // nodeIds
-            ownernodes = await nodeRegistry.ownedNodeIds(owner.address);
-            addr1nodes = await nodeRegistry.ownedNodeIds(addr1.address);
-            addr2nodes = await nodeRegistry.ownedNodeIds(addr2.address);
+            ownerNodes = await nodeRegistry.ownedNodeIds(owner.address);
+            addr1Nodes = await nodeRegistry.ownedNodeIds(addr1.address);
+            addr2Nodes = await nodeRegistry.ownedNodeIds(addr2.address);
 
-            expect(ownernodes[0]).to.be.equal(node3.nodeId);
-            expect(ownernodes[1]).to.be.equal(node5.nodeId);
-            expect(addr1nodes[0]).to.be.equal(node1.nodeId);
-            expect(addr1nodes[1]).to.be.equal(node4.nodeId);
-            expect(addr2nodes[0]).to.be.equal(node2.nodeId);
+            expect(ownerNodes[0]).to.be.equal(node3.nodeId);
+            expect(ownerNodes[1]).to.be.equal(node5.nodeId);
+            expect(addr1Nodes[0]).to.be.equal(node1.nodeId);
+            expect(addr1Nodes[1]).to.be.equal(node4.nodeId);
+            expect(addr2Nodes[0]).to.be.equal(node2.nodeId);
 
             // ********************************************************  Unregister  ******************************************************** //
             // check input value for unregister
@@ -215,31 +210,26 @@ describe("NodeRegistry Contract", function () {
             expect(node_1.tokenId).to.be.equal(0);
             expect(node_1.tokenURI).to.be.equal('');
             expect(node_1.nodeEntry).to.be.equal('');
-            expect(node_1.ownerAddr).to.be.equal(ethers.constants.AddressZero);
 
             node_2 = await nodeRegistry.nodeInfo(node2.nodeId);
             expect(node_2.tokenId).to.be.equal(0);
             expect(node_2.tokenURI).to.be.equal('');
             expect(node_2.nodeEntry).to.be.equal('');
-            expect(node_2.ownerAddr).to.be.equal(ethers.constants.AddressZero);
 
             node_3 = await nodeRegistry.nodeInfo(node3.nodeId);
             expect(node_3.tokenId).to.be.equal(node3.nodeId);
             expect(node_3.tokenURI).to.be.equal(node3.nodeUri);
             expect(node_3.nodeEntry).to.be.equal(node3.nodeEntry);
-            expect(node_3.ownerAddr).to.be.equal(node3.owner);
 
             node_4 = await nodeRegistry.nodeInfo(node4.nodeId);
             expect(node_4.tokenId).to.be.equal(node4.nodeId);
             expect(node_4.tokenURI).to.be.equal(node4.nodeUri);
             expect(node_4.nodeEntry).to.be.equal(node4.nodeEntry);
-            expect(node_4.ownerAddr).to.be.equal(node4.owner);
 
             node_5 = await nodeRegistry.nodeInfo(node5.nodeId);
             expect(node_5.tokenId).to.be.equal(node5.nodeId);
             expect(node_5.tokenURI).to.be.equal(node5.nodeUri);
             expect(node_5.nodeEntry).to.be.equal(node5.nodeEntry);
-            expect(node_5.ownerAddr).to.be.equal(node5.owner);
 
             // get nodes
             // count
@@ -269,13 +259,13 @@ describe("NodeRegistry Contract", function () {
             await expect(nodeRegistry.ownedNodeByIndex(addr1.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
             await expect(nodeRegistry.ownedNodeByIndex(addr2.address, 0)).to.be.revertedWith("EnumerableSet: index out of bounds");
             // nodeIds
-            ownernodes = await nodeRegistry.ownedNodeIds(owner.address);
-            addr1nodes = await nodeRegistry.ownedNodeIds(addr1.address);
-            addr2nodes = await nodeRegistry.ownedNodeIds(addr2.address);
+            ownerNodes = await nodeRegistry.ownedNodeIds(owner.address);
+            addr1Nodes = await nodeRegistry.ownedNodeIds(addr1.address);
+            addr2Nodes = await nodeRegistry.ownedNodeIds(addr2.address);
 
-            expect(ownernodes[0]).to.be.equal(node3.nodeId);
-            expect(ownernodes[1]).to.be.equal(node5.nodeId);
-            expect(addr1nodes[0]).to.be.equal(node4.nodeId);
+            expect(ownerNodes[0]).to.be.equal(node3.nodeId);
+            expect(ownerNodes[1]).to.be.equal(node5.nodeId);
+            expect(addr1Nodes[0]).to.be.equal(node4.nodeId);
 
             // ********************************************************  Update  ******************************************************** //
             // change platform fee to zero
@@ -283,10 +273,10 @@ describe("NodeRegistry Contract", function () {
             // register 2 more nodes
             await expect(nodeRegistry.connect(addr1).mint(node6.nodeId, node6.nodeUri, node6.nodeEntry, { value: node6.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node6.nodeId, platform.address, node6.fee)
-                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node6.nodeId, node6.nodeUri, node6.nodeEntry, node6.owner);
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node6.nodeId, node6.nodeUri, node6.nodeEntry);
             await expect(nodeRegistry.connect(addr2).mint(node7.nodeId, node7.nodeUri, node7.nodeEntry, { value: node7.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node7.nodeId, platform.address, node7.fee)
-                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node7.nodeId, node7.nodeUri, node7.nodeEntry, node7.owner);
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node7.nodeId, node7.nodeUri, node7.nodeEntry);
             // update node
             // check input value
             await expect(nodeRegistry.connect(addr1).updateNode(BigNumber.from(8), node4.updatedNodeUri)).to.be.revertedWith("NodeRegistry: invalid nodeId");
@@ -308,43 +298,36 @@ describe("NodeRegistry Contract", function () {
             expect(node_1.tokenId).to.be.equal(0);
             expect(node_1.tokenURI).to.be.equal('');
             expect(node_1.nodeEntry).to.be.equal('');
-            expect(node_1.ownerAddr).to.be.equal(ethers.constants.AddressZero);
 
             node_2 = await nodeRegistry.nodeInfo(node2.nodeId);
             expect(node_2.tokenId).to.be.equal(0);
             expect(node_2.tokenURI).to.be.equal('');
             expect(node_2.nodeEntry).to.be.equal('');
-            expect(node_2.ownerAddr).to.be.equal(ethers.constants.AddressZero);
 
             node_3 = await nodeRegistry.nodeInfo(node3.nodeId);
             expect(node_3.tokenId).to.be.equal(node3.nodeId);
             expect(node_3.tokenURI).to.be.equal(node3.nodeUri);
             expect(node_3.nodeEntry).to.be.equal(node3.nodeEntry);
-            expect(node_3.ownerAddr).to.be.equal(node3.owner);
 
             node_4 = await nodeRegistry.nodeInfo(node4.nodeId);
             expect(node_4.tokenId).to.be.equal(node4.nodeId);
             expect(node_4.tokenURI).to.be.equal(node4.updatedNodeUri);
             expect(node_4.nodeEntry).to.be.equal(node4.nodeEntry);
-            expect(node_4.ownerAddr).to.be.equal(node4.owner);
 
             node_5 = await nodeRegistry.nodeInfo(node5.nodeId);
             expect(node_5.tokenId).to.be.equal(node5.nodeId);
             expect(node_5.tokenURI).to.be.equal(node5.updatedNodeUri);
             expect(node_5.nodeEntry).to.be.equal(node5.nodeEntry);
-            expect(node_5.ownerAddr).to.be.equal(node5.owner);
 
             node_6 = await nodeRegistry.nodeInfo(node6.nodeId);
             expect(node_6.tokenId).to.be.equal(0);
             expect(node_6.tokenURI).to.be.equal('');
             expect(node_6.nodeEntry).to.be.equal('');
-            expect(node_6.ownerAddr).to.be.equal(ethers.constants.AddressZero);
 
             node_7 = await nodeRegistry.nodeInfo(node7.nodeId);
             expect(node_7.tokenId).to.be.equal(node7.nodeId);
             expect(node_7.tokenURI).to.be.equal(node7.nodeUri);
             expect(node_7.nodeEntry).to.be.equal(node7.nodeEntry);
-            expect(node_7.ownerAddr).to.be.equal(node7.owner);
 
             // get nodes
             // count
@@ -377,26 +360,26 @@ describe("NodeRegistry Contract", function () {
             expect((await nodeRegistry.ownedNodeByIndex(addr2.address, 0)).tokenId).to.be.equal(node7.nodeId);
             await expect(nodeRegistry.ownedNodeByIndex(addr2.address, 1)).to.be.revertedWith("EnumerableSet: index out of bounds");
             // nodeIds
-            ownernodes = await nodeRegistry.ownedNodeIds(owner.address);
-            addr1nodes = await nodeRegistry.ownedNodeIds(addr1.address);
-            addr2nodes = await nodeRegistry.ownedNodeIds(addr2.address);
+            ownerNodes = await nodeRegistry.ownedNodeIds(owner.address);
+            addr1Nodes = await nodeRegistry.ownedNodeIds(addr1.address);
+            addr2Nodes = await nodeRegistry.ownedNodeIds(addr2.address);
 
-            expect(ownernodes[0]).to.be.equal(node3.nodeId);
-            expect(ownernodes[1]).to.be.equal(node5.nodeId);
-            expect(addr1nodes[0]).to.be.equal(node4.nodeId);
-            expect(addr2nodes[0]).to.be.equal(node7.nodeId);
+            expect(ownerNodes[0]).to.be.equal(node3.nodeId);
+            expect(ownerNodes[1]).to.be.equal(node5.nodeId);
+            expect(addr1Nodes[0]).to.be.equal(node4.nodeId);
+            expect(addr2Nodes[0]).to.be.equal(node7.nodeId);
         });
 
         it("Should be able to reveal / transfer nodes by personal wallet", async function () {
             const registerFee = platformFee;
-            const node1 = { owner: addr1.address, nodeId: BigNumber.from("1"), nodeUri: "first node uri", nodeEntry: "first node entry", fee: registerFee };
-            const node2 = { owner: addr2.address, nodeId: BigNumber.from("2"), nodeUri: "second node uri", nodeEntry: "second node entry", fee: registerFee };
+            const node1 = { nodeId: BigNumber.from("1"), nodeUri: "first node uri", nodeEntry: "first node entry", fee: registerFee };
+            const node2 = { nodeId: BigNumber.from("2"), nodeUri: "second node uri", nodeEntry: "second node entry", fee: registerFee };
             let node_1;
 
             // ********************************************************  Register  ******************************************************** //
             await expect(nodeRegistry.connect(addr1).mint(node1.nodeId, node1.nodeUri, node1.nodeEntry, { value: node1.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node1.nodeId, platform.address, node1.fee)
-                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry, node1.owner);
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry);
             // ********************************************************  Reveal node  ******************************************************** //
             expect(await nodeRegistry.isRevealed()).to.be.equal(0);
             // Transfer node before reveal node
@@ -420,7 +403,6 @@ describe("NodeRegistry Contract", function () {
             expect(node_1.tokenId).to.be.equal(node1.nodeId);
             expect(node_1.tokenURI).to.be.equal(node1.nodeUri);
             expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
-            expect(node_1.ownerAddr).to.be.equal(addr2.address);
             // Transfer (addr2 => owner)
             await expect(nodeRegistry.connect(addr1).approve(addr1.address, node1.nodeId)).to.be.revertedWith("ERC721: approve caller is not owner nor approved for all");
             await expect(nodeRegistry.connect(addr2).approve(addr1.address, node1.nodeId)).to.emit(nodeRegistry, "Approval").withArgs(addr2.address, addr1.address, node1.nodeId);
@@ -430,7 +412,6 @@ describe("NodeRegistry Contract", function () {
             expect(node_1.tokenId).to.be.equal(node1.nodeId);
             expect(node_1.tokenURI).to.be.equal(node1.nodeUri);
             expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
-            expect(node_1.ownerAddr).to.be.equal(owner.address);
             // Transfer (owner => addr2)
             await expect(nodeRegistry.connect(addr2).approve(addr1.address, node1.nodeId)).to.be.revertedWith("ERC721: approve caller is not owner nor approved for all");
             await expect(nodeRegistry.connect(owner).setApprovalForAll(addr1.address, true)).to.emit(nodeRegistry, "ApprovalForAll").withArgs(owner.address, addr1.address, true);
@@ -441,7 +422,6 @@ describe("NodeRegistry Contract", function () {
             expect(node_1.tokenId).to.be.equal(node1.nodeId);
             expect(node_1.tokenURI).to.be.equal(node1.nodeUri);
             expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
-            expect(node_1.ownerAddr).to.be.equal(addr2.address);
 
             // ********************************************************  Update  ******************************************************** //
             await expect(nodeRegistry.connect(addr1).updateNode(node1.nodeId, node2.nodeUri)).to.be.revertedWith("NodeRegistry: caller is not node owner");
@@ -453,7 +433,6 @@ describe("NodeRegistry Contract", function () {
             expect(node_1.tokenId).to.be.equal(node1.nodeId);
             expect(node_1.tokenURI).to.be.equal(node2.nodeUri);
             expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
-            expect(node_1.ownerAddr).to.be.equal(addr2.address);
             // ********************************************************  Unregister  ******************************************************** //
             await expect(nodeRegistry.connect(addr1)['burn(uint256)'](node1.nodeId)).to.be.revertedWith("NodeRegistry: caller is not node owner or contract owner");
             // unregister with node owner
