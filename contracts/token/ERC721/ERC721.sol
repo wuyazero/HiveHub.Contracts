@@ -347,8 +347,6 @@ contract ERC721 is ContextUpgradeable, ERC165Upgradeable, IERC721, IERC721Metada
         _tokenOwners.set(tokenId, to);
 
         emit Transfer(address(0), to, tokenId);
-
-        _afterTokenTransfer(address(0), to, tokenId);
     }
 
     /**
@@ -379,8 +377,6 @@ contract ERC721 is ContextUpgradeable, ERC165Upgradeable, IERC721, IERC721Metada
         _tokenOwners.remove(tokenId);
 
         emit Transfer(owner, address(0), tokenId);
-
-        _afterTokenTransfer(owner, address(0), tokenId);
     }
 
     /**
@@ -409,8 +405,6 @@ contract ERC721 is ContextUpgradeable, ERC165Upgradeable, IERC721, IERC721Metada
         _tokenOwners.set(tokenId, to);
 
         emit Transfer(from, to, tokenId);
-
-        _afterTokenTransfer(from, to, tokenId);
     }
 
     /**
@@ -487,11 +481,6 @@ contract ERC721 is ContextUpgradeable, ERC165Upgradeable, IERC721, IERC721Metada
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
     function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual { }
-
-    /**
-     * @dev Custom design
-     */
-    function _afterTokenTransfer(address from, address to, uint256 tokenId) internal virtual { }
 
     /**
      * @dev Custom design

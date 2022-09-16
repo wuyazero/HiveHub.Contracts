@@ -31,13 +31,11 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      * @param tokenId Node unique Id.
      * @param tokenURI Node uri.
      * @param nodeEntry Node  entry.
-     * @param ownerAddr ESC address to make register transaction.
      */
     event NodeRegistered(
         uint256 tokenId,
         string tokenURI,
-        string nodeEntry,
-        address ownerAddr
+        string nodeEntry
     );
 
     /**
@@ -78,7 +76,6 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
         uint256 tokenId;
         string tokenURI;
         string nodeEntry;
-        address ownerAddr;
     }
 
     string private constant _name = "Hive Node Token Collection";
@@ -132,12 +129,11 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
         newNode.tokenId = tokenId;
         newNode.tokenURI = tokenURI;
         newNode.nodeEntry = nodeEntry;
-        newNode.ownerAddr = msg.sender;
 
         _allTokens[tokenId] = newNode;
         _tokens.add(tokenId);
 
-        emit NodeRegistered(tokenId, tokenURI, nodeEntry, msg.sender);
+        emit NodeRegistered(tokenId, tokenURI, nodeEntry);
     }
 
     /**
@@ -219,17 +215,6 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
         super._beforeTokenTransfer(from, to, tokenId);
         if (from != address(0) && to != address(0))
             require(_isRevealed == 1, "NodeRegistry: node is not revealed");
-    }
-
-    /**
-     * @notice Override to change ownership of the token
-     * @param from Address of sender.
-     * @param to Address of receiver.
-     * @param tokenId node Id.
-     */
-    function _afterTokenTransfer(address from, address to, uint256 tokenId) internal virtual override {
-        super._afterTokenTransfer(from, to, tokenId);
-        _allTokens[tokenId].ownerAddr = to;
     }
 
     /**
