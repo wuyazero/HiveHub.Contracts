@@ -31,14 +31,12 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      * @param tokenId Node unique Id.
      * @param tokenURI Node uri.
      * @param nodeEntry Node  entry.
-     * @param receiptAddr ESC address to receive tipping or other payments.
      * @param ownerAddr ESC address to make register transaction.
      */
     event NodeRegistered(
         uint256 tokenId,
         string tokenURI,
         string nodeEntry,
-        address receiptAddr,
         address ownerAddr
     );
 
@@ -80,7 +78,6 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
         uint256 tokenId;
         string tokenURI;
         string nodeEntry;
-        address receiptAddr;
         address ownerAddr;
     }
 
@@ -117,42 +114,6 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
         string memory tokenURI,  // nodeURI
         string memory nodeEntry
     ) external payable nonReentrant {
-        _mint(tokenId, tokenURI, nodeEntry, msg.sender);
-    }
-
-    /**
-     * @notice Register a new node by personal wallet.
-     * @param tokenId Node unique Id.
-     * @param tokenURI Node uri.
-     * @param nodeEntry Node entry.
-     * @param receiptAddr ESC address to receive tipping or other payments.
-     */
-    function mint(
-        uint256 tokenId,   //nodeId
-        string memory tokenURI,  //nodeURI
-        string memory nodeEntry,
-        address receiptAddr
-    ) external payable nonReentrant {
-        _mint(tokenId, tokenURI, nodeEntry, receiptAddr);
-    }
-
-    /**
-     * @notice Register a new node by personal wallet.
-     * @param tokenId Node unique Id.
-     * @param tokenURI Node uri.
-     * @param nodeEntry Node entry.
-     * @param receiptAddr ESC address to receive tipping or other payments.
-     */
-    function _mint(
-        uint256 tokenId,
-        string memory tokenURI,
-        string memory nodeEntry,
-        address receiptAddr
-    ) internal virtual {
-        require(
-            receiptAddr != address(0),
-            "NodeRegistry: invalid receipt address"
-        );
         require(
             msg.value == _platformFee,
             "NodeRegistry: incorrect register fee"
@@ -163,38 +124,20 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
             require(success, "NodeRegistry: register fee transfer failed");
         }
         emit RegisteredFees(tokenId, _platformAddr, msg.value);
-        _mintNewNode(tokenId, tokenURI, nodeEntry, receiptAddr, msg.sender);
-    }
-
-    /**
-     * @notice Register a new node.
-     * @param tokenId Node unique Id.
-     * @param tokenURI Node uri.
-     * @param nodeEntry Node entry.
-     * @param receiptAddr ESC address to receive tipping or other payments.
-     * @param ownerAddr ESC address to make register transaction.
-     */
-    function _mintNewNode(
-        uint256 tokenId,
-        string memory tokenURI,
-        string memory nodeEntry,
-        address receiptAddr,
-        address ownerAddr
-    ) internal virtual {
-        _mint(ownerAddr, tokenId);
+        
+        _mint(msg.sender, tokenId);
         _setTokenURI(tokenId, tokenURI);
 
         Node memory newNode;
         newNode.tokenId = tokenId;
         newNode.tokenURI = tokenURI;
         newNode.nodeEntry = nodeEntry;
-        newNode.receiptAddr = receiptAddr;
-        newNode.ownerAddr = ownerAddr;
+        newNode.ownerAddr = msg.sender;
 
         _allTokens[tokenId] = newNode;
         _tokens.add(tokenId);
 
-        emit NodeRegistered(tokenId, tokenURI, nodeEntry, receiptAddr, ownerAddr);
+        emit NodeRegistered(tokenId, tokenURI, nodeEntry, msg.sender);
     }
 
     /**
@@ -213,16 +156,6 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
             "NodeRegistry: caller is not node owner or contract owner"
         );
 
-        _burn(tokenId);
-    }
-
-    /**
-     * @notice Unregister a node.
-     * @param tokenId Node Id to be removed.
-     */
-    function _burn(
-        uint256 tokenId
-    ) internal virtual override {
         super._burn(tokenId);
         // registered nodes
         _tokens.remove(tokenId);
@@ -238,12 +171,10 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      * @notice Update node by personal wallet.
      * @param tokenId Node Id to be updated.
      * @param tokenURI Updated node uri.
-     * @param receiptAddr updated ESC address to receive tipping.
      */
     function updateNode(
         uint256 tokenId,
-        string memory tokenURI,
-        address receiptAddr
+        string memory tokenURI
     ) external nonReentrant {
         require(
             _exists(tokenId),
@@ -253,26 +184,9 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
             ownerOf(tokenId) == msg.sender,
             "NodeRegistry: caller is not node owner"
         );
-        // receipt Addr can be 0x0, which means no changes.
-        _updateNode(tokenId, tokenURI, receiptAddr);
-    }
-
-    /**
-     * @notice Update node info.
-     * @param tokenId Node Id to be updated.
-     * @param tokenURI Node uri.
-     * @param receiptAddr ESC address to receive tipping.
-     */
-    function _updateNode(
-        uint256 tokenId,
-        string memory tokenURI,
-        address receiptAddr
-    ) internal {
         Node memory updatedNode = _allTokens[tokenId];
         updatedNode.tokenId = tokenId;
         updatedNode.tokenURI = tokenURI;
-        if (receiptAddr != address(0))
-            updatedNode.receiptAddr = receiptAddr;
         _allTokens[tokenId] = updatedNode;
 
         emit NodeUpdated(tokenId, tokenURI);
