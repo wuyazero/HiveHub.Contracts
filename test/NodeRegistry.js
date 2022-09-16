@@ -194,15 +194,15 @@ describe("NodeRegistry Contract", function () {
 
             // ********************************************************  Unregister  ******************************************************** //
             // check input value for unregister
-            await expect(nodeRegistry.connect(addr1)['burn(uint256)'](BigNumber.from(7))).to.be.revertedWith("NodeRegistry: invalid nodeId");
-            await expect(nodeRegistry.connect(owner)['burn(uint256)'](BigNumber.from(7))).to.be.revertedWith("NodeRegistry: invalid nodeId");
-            await expect(nodeRegistry.connect(addr2)['burn(uint256)'](node1.nodeId)).to.be.revertedWith("NodeRegistry: caller is not node owner or contract owner");
+            await expect(nodeRegistry.connect(addr1).burn(BigNumber.from(7))).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(owner).burn(BigNumber.from(7))).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(addr2).burn(node1.nodeId)).to.be.revertedWith("NodeRegistry: caller is not node owner or contract owner");
             // unregister with node owner
-            await expect(nodeRegistry.connect(addr1)['burn(uint256)'](node1.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node1.nodeId);
+            await expect(nodeRegistry.connect(addr1).burn(node1.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node1.nodeId);
             // unregister with owner
-            await expect(nodeRegistry.connect(owner)['burn(uint256)'](node2.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node2.nodeId);
+            await expect(nodeRegistry.connect(owner).burn(node2.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node2.nodeId);
             // unregister already unregistered node
-            await expect(nodeRegistry.connect(owner)['burn(uint256)'](node1.nodeId)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(owner).burn(node1.nodeId)).to.be.revertedWith("NodeRegistry: invalid nodeId");
 
             // ********************************************************  Check state  ******************************************************** //
             // get node by id (nodeInfo)
@@ -290,7 +290,7 @@ describe("NodeRegistry Contract", function () {
             await expect(nodeRegistry.connect(addr1).updateNode(node4.nodeId, node4.updatedNodeUri)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node4.nodeId, node4.updatedNodeUri);
             await expect(nodeRegistry.connect(addr2).updateNode(node1.nodeId, node1.updatedNodeUri)).to.be.revertedWith("NodeRegistry: invalid nodeId");
             // unregister            
-            await expect(nodeRegistry.connect(owner)['burn(uint256)'](node6.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node6.nodeId);
+            await expect(nodeRegistry.connect(owner).burn(node6.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node6.nodeId);
 
             // ********************************************************  Check state  ******************************************************** //
             // get node by id (nodeInfo)
@@ -434,9 +434,9 @@ describe("NodeRegistry Contract", function () {
             expect(node_1.tokenURI).to.be.equal(node2.nodeUri);
             expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
             // ********************************************************  Unregister  ******************************************************** //
-            await expect(nodeRegistry.connect(addr1)['burn(uint256)'](node1.nodeId)).to.be.revertedWith("NodeRegistry: caller is not node owner or contract owner");
+            await expect(nodeRegistry.connect(addr1).burn(node1.nodeId)).to.be.revertedWith("NodeRegistry: caller is not node owner or contract owner");
             // unregister with node owner
-            await expect(nodeRegistry.connect(addr2)['burn(uint256)'](node1.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node1.nodeId);
+            await expect(nodeRegistry.connect(addr2).burn(node1.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node1.nodeId);
         });
 
         it("Should be able to manage platform fee", async function () {
