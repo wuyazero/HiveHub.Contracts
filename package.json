@@ -27,7 +27,7 @@
     "hardhat": "^2.10.1"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "3.4.2-solc-0.7",
-    "@openzeppelin/contracts-upgradeable": "3.4.2-solc-0.7"
+    "@openzeppelin/contracts": "^3.4.2-solc-0.7",
+    "@openzeppelin/contracts-upgradeable": "^3.4.2-solc-0.7"
   }
 }
