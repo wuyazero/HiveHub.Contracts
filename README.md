@@ -1,20 +1,22 @@
-# HIVEHUB CONTRACTS
+# Hive Node Registry Contract
 
-### Introduction
-HiveHub Node Registry Contract
+The Hive node registry contract is the collection contract of ERC721 standard on Elastos ESC blockchain. When a Hive node is deployed and decided to be a public storage service, it needs to be registered in this contract on the HiveHub webApp. Once the Hive node is registered, the community users can explore and use it to create their vaults. 
 
-### HowTo
+***Notice: The registery contract is ERC721 compatible and possibly would be registered into `Pasar` as NFT collection.***
 
-- Set enviroment
-Clone the repository onto your local device, and install all depedencies
 
+
+## How to build
+
+### Prepare for environment
+
+Clone the repository onto your local device, and install all depedencies by running the commands below:
 ```shell
 $ git clone https://github.com/elastos-trinity/HiveHub.Contracts.git
 $ npm install
 ```
 
 then, configurate hardhat.config.js, put your private key in the network config item
-
 ```javascript
 module.exports = {
   solidity: {
@@ -54,16 +56,34 @@ module.exports = {
 
 **Notice**: *put your private key string in the item "accounts"*.
 
-- Testing
-Run the following command in the terminal to start testing on testnet enviroment.
 
+### Testing
+
+Run the following command in the terminal to start testing on testnet enviroment.
 ```shell
 $ npx hardhat test
 ```
 
-- Deploy contracts
+### Deploy contracts
 Deploy contracts by running such command in terminal
 
 ```shell
 $ npx hardhat run scripts/deploy.js --network elastostestnet
 ```
+
+
+
+## Contribution
+
+Any contributions  to this project would be highly appreciated, including
+
+- Building docs
+- Report bug and bugfix
+
+The contribution acitivities can be either by creating an issue or pushing a pull request.
+
+
+
+## License
+
+This project is licensed under the terms of the [MIT license](https://github.com/elastos-trinity/HiveHub.Contracts/blob/main/LICENSE).
