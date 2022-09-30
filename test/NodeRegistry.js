@@ -27,23 +27,27 @@ describe("NodeRegistry Contract", function () {
     describe("Deployments", function () {
         it("Should be able to register / unregister / update nodes by personal wallet", async function () {
             const registerFee = platformFee;
-            const node1 = { nodeId: BigNumber.from("1"), nodeUri: "first node uri", nodeEntry: "first node entry", fee: registerFee, updatedNodeUri: "updated first node uri" };
-            const node2 = { nodeId: BigNumber.from("2"), nodeUri: "second node uri", nodeEntry: "second node entry", fee: registerFee, updatedNodeUri: "updated second node uri" };
-            const node3 = { nodeId: BigNumber.from("3"), nodeUri: "third node uri", nodeEntry: "third node entry", fee: registerFee, updatedNodeUri: "updated third node uri" };
-            const node4 = { nodeId: BigNumber.from("4"), nodeUri: "fourth node uri", nodeEntry: "fourth node entry", fee: 0, updatedNodeUri: "updated fourth node uri" };
-            const node5 = { nodeId: BigNumber.from("5"), nodeUri: "fifth node uri", nodeEntry: "fifth node entry", fee: 0, updatedNodeUri: node1.nodeUri };
-            const node6 = { nodeId: BigNumber.from("6"), nodeUri: "sixth node uri", nodeEntry: "sixth node entry", fee: registerFee, updatedNodeUri: "updated sixth node uri" };
-            const node7 = { nodeId: BigNumber.from("7"), nodeUri: "seventh node uri", nodeEntry: "seventh node entry", fee: registerFee, updatedNodeUri: "updated seventh node uri" };
+            const node1 = { nodeId: BigNumber.from("1"), nodeUri: "first node uri", nodeEntry: "first node entry", fee: registerFee, updatedNodeUri: "updated first node uri", updatedNodeEntry: "updated first node entry" };
+            const node2 = { nodeId: BigNumber.from("2"), nodeUri: "second node uri", nodeEntry: "second node entry", fee: registerFee, updatedNodeUri: "updated second node uri", updatedNodeEntry: "updated second node entry" };
+            const node3 = { nodeId: BigNumber.from("3"), nodeUri: "third node uri", nodeEntry: "third node entry", fee: registerFee, updatedNodeUri: "updated third node uri", updatedNodeEntry: "updated third node entry" };
+            const node4 = { nodeId: BigNumber.from("4"), nodeUri: "fourth node uri", nodeEntry: "fourth node entry", fee: 0, updatedNodeUri: "updated fourth node uri", updatedNodeEntry: "updated fourth node entry" };
+            const node5 = { nodeId: BigNumber.from("5"), nodeUri: "fifth node uri", nodeEntry: "fifth node entry", fee: 0, updatedNodeUri: node1.nodeUri, updatedNodeEntry: "updated fifth node entry" };
+            const node6 = { nodeId: BigNumber.from("6"), nodeUri: "sixth node uri", nodeEntry: "sixth node entry", fee: registerFee, updatedNodeUri: "updated sixth node uri", updatedNodeEntry: "updated sixth node entry" };
+            const node7 = { nodeId: BigNumber.from("7"), nodeUri: "seventh node uri", nodeEntry: "seventh node entry", fee: registerFee, updatedNodeUri: "updated seventh node uri", updatedNodeEntry: "updated seventh node entry" };
 
             let preBalanceAddr1, preBalanceAddr2, preBalanceContract, preBalancePlat, preBalanceOwner;
             let nodes, node_1, node_2, node_3, node_4, node_5, node_6, node_7, ownerNodes, addr1Nodes, addr2Nodes;
 
-            // ********************************************************  Register  ******************************************************** //
             // check platform fee config
             const platformInfo = await nodeRegistry.getPlatformFee();
             expect(platformInfo.platformAddress).to.be.equal(platform.address);
             expect(platformInfo.platformFee).to.be.equal(platformFee);
-
+            
+            // check node count
+            expect(await nodeRegistry.getLastTokenId()).to.be.equal(0);
+            expect(await nodeRegistry.totalSupply()).to.be.equal(0);
+            
+            // ********************************************************  Register  ******************************************************** //
             // register with native token (value != 0)
             // check balance
             const provider = ethers.provider;
@@ -51,7 +55,7 @@ describe("NodeRegistry Contract", function () {
             preBalancePlat = await provider.getBalance(platform.address);
             preBalanceContract = await provider.getBalance(nodeRegistry.address);
             // register
-            await expect(nodeRegistry.connect(addr1).mint(node1.nodeId, node1.nodeUri, node1.nodeEntry, { value: node1.fee }))
+            await expect(nodeRegistry.connect(addr1).mint(node1.nodeUri, node1.nodeEntry, { value: node1.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node1.nodeId, platform.address, node1.fee)
                 .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry);
             // check balance
@@ -59,15 +63,12 @@ describe("NodeRegistry Contract", function () {
             expect((await provider.getBalance(platform.address)).sub(preBalancePlat)).to.be.equal(node1.fee);
             expect((await provider.getBalance(nodeRegistry.address))).to.be.equal(preBalanceContract);
 
-            // register with same nodeId will be reverted
-            await expect(nodeRegistry.connect(addr2).mint(node1.nodeId, node2.nodeUri, node2.nodeEntry, { value: node2.fee })).to.be.revertedWith("ERC721: token already minted");
-
             // register with native token (fee != 0)
             // check balance
             preBalanceAddr2 = await provider.getBalance(addr2.address);
             preBalanceContract = await provider.getBalance(nodeRegistry.address);
             preBalancePlat = await provider.getBalance(platform.address);
-            await expect(nodeRegistry.connect(addr2).mint(node2.nodeId, node2.nodeUri, node2.nodeEntry, { value: node2.fee }))
+            await expect(nodeRegistry.connect(addr2).mint(node2.nodeUri, node2.nodeEntry, { value: node2.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node2.nodeId, platform.address, node2.fee)
                 .to.emit(nodeRegistry, "NodeRegistered").withArgs(node2.nodeId, node2.nodeUri, node2.nodeEntry);
             // check balance
@@ -80,7 +81,7 @@ describe("NodeRegistry Contract", function () {
             preBalanceOwner = await provider.getBalance(owner.address);
             preBalanceContract = await provider.getBalance(nodeRegistry.address);
             preBalancePlat = await provider.getBalance(platform.address);
-            await expect(nodeRegistry.connect(owner).mint(node3.nodeId, node3.nodeUri, node3.nodeEntry, { value: node3.fee }))
+            await expect(nodeRegistry.connect(owner).mint(node3.nodeUri, node3.nodeEntry, { value: node3.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node3.nodeId, platform.address, node3.fee)
                 .to.emit(nodeRegistry, "NodeRegistered").withArgs(node3.nodeId, node3.nodeUri, node3.nodeEntry);
             // check balance
@@ -89,8 +90,8 @@ describe("NodeRegistry Contract", function () {
             expect((await provider.getBalance(nodeRegistry.address))).to.be.equal(preBalanceContract);
 
             // register with incorrect fee will revert
-            await expect(nodeRegistry.connect(addr2).mint(node2.nodeId, node2.nodeUri, node2.nodeEntry, { value: 0 })).to.be.revertedWith("NodeRegistry: incorrect register fee");
-            await expect(nodeRegistry.connect(addr2).mint(node2.nodeId, node2.nodeUri, node2.nodeEntry, { value: parseEther('1') })).to.be.revertedWith("NodeRegistry: incorrect register fee");
+            await expect(nodeRegistry.connect(addr1).mint(node4.nodeUri, node4.nodeEntry, { value: 0 })).to.be.revertedWith("NodeRegistry: incorrect register fee");
+            await expect(nodeRegistry.connect(addr1).mint(node4.nodeUri, node4.nodeEntry, { value: parseEther('1') })).to.be.revertedWith("NodeRegistry: incorrect register fee");
 
             // change platform fee to zero
             await nodeRegistry.connect(owner).setPlatformFee(platform.address, parseEther("0"));
@@ -100,7 +101,7 @@ describe("NodeRegistry Contract", function () {
             preBalanceAddr1 = await provider.getBalance(addr1.address);
             preBalanceContract = await provider.getBalance(nodeRegistry.address);
             preBalancePlat = await provider.getBalance(platform.address);
-            await expect(nodeRegistry.connect(addr1).mint(node4.nodeId, node4.nodeUri, node4.nodeEntry, { value: node4.fee }))
+            await expect(nodeRegistry.connect(addr1).mint(node4.nodeUri, node4.nodeEntry, { value: node4.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node4.nodeId, platform.address, node4.fee)
                 .to.emit(nodeRegistry, "NodeRegistered").withArgs(node4.nodeId, node4.nodeUri, node4.nodeEntry);
             // check balance
@@ -113,7 +114,7 @@ describe("NodeRegistry Contract", function () {
             preBalanceOwner = await provider.getBalance(owner.address);
             preBalanceContract = await provider.getBalance(nodeRegistry.address);
             preBalancePlat = await provider.getBalance(platform.address);
-            await expect(nodeRegistry.connect(owner).mint(node5.nodeId, node5.nodeUri, node5.nodeEntry, { value: node5.fee }))
+            await expect(nodeRegistry.connect(owner).mint(node5.nodeUri, node5.nodeEntry, { value: node5.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node5.nodeId, platform.address, node5.fee)
                 .to.emit(nodeRegistry, "NodeRegistered").withArgs(node5.nodeId, node5.nodeUri, node5.nodeEntry);
             // check balance
@@ -122,31 +123,39 @@ describe("NodeRegistry Contract", function () {
             expect((await provider.getBalance(nodeRegistry.address))).to.be.equal(preBalanceContract);
 
             // ********************************************************  Check state  ******************************************************** //
+            expect(await nodeRegistry.getLastTokenId()).to.be.equal(5);
+            expect(await nodeRegistry.totalSupply()).to.be.equal(5);
+
             // get node by id (nodeInfo)
             node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
             expect(node_1.tokenId).to.be.equal(node1.nodeId);
             expect(node_1.tokenURI).to.be.equal(node1.nodeUri);
             expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node1.nodeUri, node1.nodeEntry)).to.be.equal(node1.nodeId);
 
             node_2 = await nodeRegistry.nodeInfo(node2.nodeId);
             expect(node_2.tokenId).to.be.equal(node2.nodeId);
             expect(node_2.tokenURI).to.be.equal(node2.nodeUri);
             expect(node_2.nodeEntry).to.be.equal(node2.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node2.nodeUri, node2.nodeEntry)).to.be.equal(node2.nodeId);
 
             node_3 = await nodeRegistry.nodeInfo(node3.nodeId);
             expect(node_3.tokenId).to.be.equal(node3.nodeId);
             expect(node_3.tokenURI).to.be.equal(node3.nodeUri);
             expect(node_3.nodeEntry).to.be.equal(node3.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node3.nodeUri, node3.nodeEntry)).to.be.equal(node3.nodeId);
 
             node_4 = await nodeRegistry.nodeInfo(node4.nodeId);
             expect(node_4.tokenId).to.be.equal(node4.nodeId);
             expect(node_4.tokenURI).to.be.equal(node4.nodeUri);
             expect(node_4.nodeEntry).to.be.equal(node4.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node4.nodeUri, node4.nodeEntry)).to.be.equal(node4.nodeId);
 
             node_5 = await nodeRegistry.nodeInfo(node5.nodeId);
             expect(node_5.tokenId).to.be.equal(node5.nodeId);
             expect(node_5.tokenURI).to.be.equal(node5.nodeUri);
             expect(node_5.nodeEntry).to.be.equal(node5.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node5.nodeUri, node5.nodeEntry)).to.be.equal(node5.nodeId);
 
             // get nodes
             // count
@@ -205,31 +214,39 @@ describe("NodeRegistry Contract", function () {
             await expect(nodeRegistry.connect(owner).burn(node1.nodeId)).to.be.revertedWith("NodeRegistry: invalid nodeId");
 
             // ********************************************************  Check state  ******************************************************** //
+            expect(await nodeRegistry.getLastTokenId()).to.be.equal(5);
+            expect(await nodeRegistry.totalSupply()).to.be.equal(3);
+
             // get node by id (nodeInfo)
             node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
             expect(node_1.tokenId).to.be.equal(0);
             expect(node_1.tokenURI).to.be.equal('');
             expect(node_1.nodeEntry).to.be.equal('');
+            expect(await nodeRegistry.getTokenId(node1.nodeUri, node1.nodeEntry)).to.be.equal(0);
 
             node_2 = await nodeRegistry.nodeInfo(node2.nodeId);
             expect(node_2.tokenId).to.be.equal(0);
             expect(node_2.tokenURI).to.be.equal('');
             expect(node_2.nodeEntry).to.be.equal('');
+            expect(await nodeRegistry.getTokenId(node2.nodeUri, node2.nodeEntry)).to.be.equal(0);
 
             node_3 = await nodeRegistry.nodeInfo(node3.nodeId);
             expect(node_3.tokenId).to.be.equal(node3.nodeId);
             expect(node_3.tokenURI).to.be.equal(node3.nodeUri);
             expect(node_3.nodeEntry).to.be.equal(node3.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node3.nodeUri, node3.nodeEntry)).to.be.equal(node3.nodeId);
 
             node_4 = await nodeRegistry.nodeInfo(node4.nodeId);
             expect(node_4.tokenId).to.be.equal(node4.nodeId);
             expect(node_4.tokenURI).to.be.equal(node4.nodeUri);
             expect(node_4.nodeEntry).to.be.equal(node4.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node4.nodeUri, node4.nodeEntry)).to.be.equal(node4.nodeId);
 
             node_5 = await nodeRegistry.nodeInfo(node5.nodeId);
             expect(node_5.tokenId).to.be.equal(node5.nodeId);
             expect(node_5.tokenURI).to.be.equal(node5.nodeUri);
             expect(node_5.nodeEntry).to.be.equal(node5.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node5.nodeUri, node5.nodeEntry)).to.be.equal(node5.nodeId);
 
             // get nodes
             // count
@@ -271,63 +288,78 @@ describe("NodeRegistry Contract", function () {
             // change platform fee to zero
             await nodeRegistry.connect(owner).setPlatformFee(platform.address, platformFee);
             // register 2 more nodes
-            await expect(nodeRegistry.connect(addr1).mint(node6.nodeId, node6.nodeUri, node6.nodeEntry, { value: node6.fee }))
+            await expect(nodeRegistry.connect(addr1).mint(node6.nodeUri, node6.nodeEntry, { value: node6.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node6.nodeId, platform.address, node6.fee)
                 .to.emit(nodeRegistry, "NodeRegistered").withArgs(node6.nodeId, node6.nodeUri, node6.nodeEntry);
-            await expect(nodeRegistry.connect(addr2).mint(node7.nodeId, node7.nodeUri, node7.nodeEntry, { value: node7.fee }))
+            await expect(nodeRegistry.connect(addr2).mint(node7.nodeUri, node7.nodeEntry, { value: node7.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node7.nodeId, platform.address, node7.fee)
                 .to.emit(nodeRegistry, "NodeRegistered").withArgs(node7.nodeId, node7.nodeUri, node7.nodeEntry);
             // update node
             // check input value
-            await expect(nodeRegistry.connect(addr1).updateNode(BigNumber.from(8), node4.updatedNodeUri)).to.be.revertedWith("NodeRegistry: invalid nodeId");
-            await expect(nodeRegistry.connect(owner).updateNode(BigNumber.from(8), node2.updatedNodeUri)).to.be.revertedWith("NodeRegistry: invalid nodeId");
-            await expect(nodeRegistry.connect(addr2).updateNode(BigNumber.from(8), node4.updatedNodeUri)).to.be.revertedWith("NodeRegistry: invalid nodeId");
-            await expect(nodeRegistry.connect(addr2).updateNode(node4.nodeId, node4.updatedNodeUri)).to.be.revertedWith("NodeRegistry: caller is not node owner");
-            await expect(nodeRegistry.connect(owner).updateNode(node4.nodeId, node4.updatedNodeUri)).to.be.revertedWith("NodeRegistry: caller is not node owner");
+            await expect(nodeRegistry.connect(addr1).updateNode(BigNumber.from(8), node4.updatedNodeUri, node4.nodeEntry)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(owner).updateNode(BigNumber.from(8), node2.updatedNodeUri, node4.nodeEntry)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(addr2).updateNode(BigNumber.from(8), node4.updatedNodeUri, node2.nodeEntry)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(addr2).updateNode(node4.nodeId, node4.updatedNodeUri, node4.nodeEntry)).to.be.revertedWith("NodeRegistry: caller is not node owner");
+            await expect(nodeRegistry.connect(owner).updateNode(node4.nodeId, node4.updatedNodeUri, node2.nodeEntry)).to.be.revertedWith("NodeRegistry: caller is not node owner");
+            await expect(nodeRegistry.connect(addr1).updateNode(node4.nodeId, node3.nodeUri, node3.nodeEntry)).to.be.revertedWith("NodeRegistry: duplicated node");
 
-            await expect(nodeRegistry.connect(addr1).updateNode(node4.nodeId, node2.nodeUri)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node4.nodeId, node2.nodeUri);
-            await expect(nodeRegistry.connect(owner).updateNode(node5.nodeId, node5.updatedNodeUri)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node5.nodeId, node5.updatedNodeUri);
-            await expect(nodeRegistry.connect(addr1).updateNode(node4.nodeId, node4.updatedNodeUri)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node4.nodeId, node4.updatedNodeUri);
-            await expect(nodeRegistry.connect(addr2).updateNode(node1.nodeId, node1.updatedNodeUri)).to.be.revertedWith("NodeRegistry: invalid nodeId");
+            await expect(nodeRegistry.connect(addr1).updateNode(node4.nodeId, node2.nodeUri, node4.nodeEntry)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node4.nodeId, node2.nodeUri, node4.nodeEntry);
+            await expect(nodeRegistry.connect(owner).updateNode(node5.nodeId, node2.nodeUri, node4.nodeEntry)).to.be.revertedWith("NodeRegistry: duplicated node");
+            
+            await expect(nodeRegistry.connect(owner).updateNode(node5.nodeId, node5.updatedNodeUri, node5.updatedNodeEntry)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node5.nodeId, node5.updatedNodeUri, node5.updatedNodeEntry);
+            await expect(nodeRegistry.connect(addr1).updateNode(node4.nodeId, node4.updatedNodeUri, node4.updatedNodeEntry)).to.emit(nodeRegistry, "NodeUpdated").withArgs(node4.nodeId, node4.updatedNodeUri, node4.updatedNodeEntry);
+            await expect(nodeRegistry.connect(addr2).updateNode(node1.nodeId, node1.updatedNodeUri, node1.updatedNodeEntry)).to.be.revertedWith("NodeRegistry: invalid nodeId");
             // unregister            
             await expect(nodeRegistry.connect(owner).burn(node6.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node6.nodeId);
 
             // ********************************************************  Check state  ******************************************************** //
+            expect(await nodeRegistry.getLastTokenId()).to.be.equal(7);
+            expect(await nodeRegistry.totalSupply()).to.be.equal(4);
+
             // get node by id (nodeInfo)
             node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
             expect(node_1.tokenId).to.be.equal(0);
             expect(node_1.tokenURI).to.be.equal('');
             expect(node_1.nodeEntry).to.be.equal('');
+            expect(await nodeRegistry.getTokenId(node1.nodeUri, node1.nodeEntry)).to.be.equal(0);
 
             node_2 = await nodeRegistry.nodeInfo(node2.nodeId);
             expect(node_2.tokenId).to.be.equal(0);
             expect(node_2.tokenURI).to.be.equal('');
             expect(node_2.nodeEntry).to.be.equal('');
+            expect(await nodeRegistry.getTokenId(node2.nodeUri, node2.nodeEntry)).to.be.equal(0);
 
             node_3 = await nodeRegistry.nodeInfo(node3.nodeId);
             expect(node_3.tokenId).to.be.equal(node3.nodeId);
             expect(node_3.tokenURI).to.be.equal(node3.nodeUri);
             expect(node_3.nodeEntry).to.be.equal(node3.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node3.nodeUri, node3.nodeEntry)).to.be.equal(node3.nodeId);
 
             node_4 = await nodeRegistry.nodeInfo(node4.nodeId);
             expect(node_4.tokenId).to.be.equal(node4.nodeId);
             expect(node_4.tokenURI).to.be.equal(node4.updatedNodeUri);
-            expect(node_4.nodeEntry).to.be.equal(node4.nodeEntry);
+            expect(node_4.nodeEntry).to.be.equal(node4.updatedNodeEntry);
+            expect(await nodeRegistry.getTokenId(node4.nodeUri, node4.nodeEntry)).to.be.equal(0);
+            expect(await nodeRegistry.getTokenId(node4.updatedNodeUri, node4.updatedNodeEntry)).to.be.equal(node4.nodeId);
 
             node_5 = await nodeRegistry.nodeInfo(node5.nodeId);
             expect(node_5.tokenId).to.be.equal(node5.nodeId);
             expect(node_5.tokenURI).to.be.equal(node5.updatedNodeUri);
-            expect(node_5.nodeEntry).to.be.equal(node5.nodeEntry);
+            expect(node_5.nodeEntry).to.be.equal(node5.updatedNodeEntry);
+            expect(await nodeRegistry.getTokenId(node5.nodeUri, node5.nodeEntry)).to.be.equal(0);
+            expect(await nodeRegistry.getTokenId(node5.updatedNodeUri, node5.updatedNodeEntry)).to.be.equal(node5.nodeId);
 
             node_6 = await nodeRegistry.nodeInfo(node6.nodeId);
             expect(node_6.tokenId).to.be.equal(0);
             expect(node_6.tokenURI).to.be.equal('');
             expect(node_6.nodeEntry).to.be.equal('');
+            expect(await nodeRegistry.getTokenId(node6.nodeUri, node6.nodeEntry)).to.be.equal(0);
 
             node_7 = await nodeRegistry.nodeInfo(node7.nodeId);
             expect(node_7.tokenId).to.be.equal(node7.nodeId);
             expect(node_7.tokenURI).to.be.equal(node7.nodeUri);
             expect(node_7.nodeEntry).to.be.equal(node7.nodeEntry);
+            expect(await nodeRegistry.getTokenId(node7.nodeUri, node7.nodeEntry)).to.be.equal(node7.nodeId);
 
             // get nodes
             // count
@@ -377,7 +409,7 @@ describe("NodeRegistry Contract", function () {
             let node_1;
 
             // ********************************************************  Register  ******************************************************** //
-            await expect(nodeRegistry.connect(addr1).mint(node1.nodeId, node1.nodeUri, node1.nodeEntry, { value: node1.fee }))
+            await expect(nodeRegistry.connect(addr1).mint(node1.nodeUri, node1.nodeEntry, { value: node1.fee }))
                 .to.emit(nodeRegistry, "RegisteredFees").withArgs(node1.nodeId, platform.address, node1.fee)
                 .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry);
             // ********************************************************  Reveal node  ******************************************************** //
@@ -424,15 +456,15 @@ describe("NodeRegistry Contract", function () {
             expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
 
             // ********************************************************  Update  ******************************************************** //
-            await expect(nodeRegistry.connect(addr1).updateNode(node1.nodeId, node2.nodeUri)).to.be.revertedWith("NodeRegistry: caller is not node owner");
-            await expect(nodeRegistry.connect(addr2).updateNode(node1.nodeId, node2.nodeUri))
-                .to.emit(nodeRegistry, "NodeUpdated").withArgs(node1.nodeId, node2.nodeUri);
+            await expect(nodeRegistry.connect(addr1).updateNode(node1.nodeId, node2.nodeUri, node2.nodeEntry)).to.be.revertedWith("NodeRegistry: caller is not node owner");
+            await expect(nodeRegistry.connect(addr2).updateNode(node1.nodeId, node2.nodeUri, node2.nodeEntry))
+                .to.emit(nodeRegistry, "NodeUpdated").withArgs(node1.nodeId, node2.nodeUri, node2.nodeEntry);
 
             // ********************************************************  Check node state  ******************************************************** //
             node_1 = await nodeRegistry.nodeInfo(node1.nodeId);
             expect(node_1.tokenId).to.be.equal(node1.nodeId);
             expect(node_1.tokenURI).to.be.equal(node2.nodeUri);
-            expect(node_1.nodeEntry).to.be.equal(node1.nodeEntry);
+            expect(node_1.nodeEntry).to.be.equal(node2.nodeEntry);
             // ********************************************************  Unregister  ******************************************************** //
             await expect(nodeRegistry.connect(addr1).burn(node1.nodeId)).to.be.revertedWith("NodeRegistry: caller is not node owner or contract owner");
             // unregister with node owner
@@ -462,10 +494,35 @@ describe("NodeRegistry Contract", function () {
         });
 
         it("Should be able to upgrade proxy contract", async function () {
+            const registerFee = platformFee;
+            const node1 = { nodeId: BigNumber.from("1"), nodeUri: "first node uri", nodeEntry: "first node entry", fee: registerFee };
+            const node2 = { nodeId: BigNumber.from("2"), nodeUri: "second node uri", nodeEntry: "second node entry", fee: registerFee };
+            const node3 = { nodeId: BigNumber.from("3"), nodeUri: "third node uri", nodeEntry: "third node entry", fee: registerFee };
+
+            // check initial lastTokenId
+            expect(await nodeRegistry.getLastTokenId()).to.be.equal(0);
+            // register 2 nodes
+            await expect(nodeRegistry.connect(addr1).mint(node1.nodeUri, node1.nodeEntry, { value: node1.fee }))
+                .to.emit(nodeRegistry, "RegisteredFees").withArgs(node1.nodeId, platform.address, node1.fee)
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry);
+            await expect(nodeRegistry.connect(addr2).mint(node2.nodeUri, node2.nodeEntry, { value: node2.fee }))
+                .to.emit(nodeRegistry, "RegisteredFees").withArgs(node2.nodeId, platform.address, node2.fee)
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node2.nodeId, node2.nodeUri, node2.nodeEntry);
+            // check lastTokenId
+            expect(await nodeRegistry.getLastTokenId()).to.be.equal(2);
+            // upgrade contract
             mockNR = await upgrades.upgradeProxy(nodeRegistry.address, MockNR);
             console.log("Original proxy contract deployed to: ", nodeRegistry.address);
             console.log("Upgraded proxy contract deployed to: ", mockNR.address);
             expect(nodeRegistry.address).to.be.equal(mockNR.address);
+
+            // check lastTokenId
+            expect(await nodeRegistry.getLastTokenId()).to.be.equal(2);
+            // register 1 node
+            await expect(nodeRegistry.connect(owner).mint(node3.nodeUri, node3.nodeEntry, { value: node3.fee }))
+                .to.emit(nodeRegistry, "RegisteredFees").withArgs(node3.nodeId, platform.address, node3.fee)
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node3.nodeId, node3.nodeUri, node3.nodeEntry);            
+            expect(await nodeRegistry.getLastTokenId()).to.be.equal(3);
 
             const updatedVersion = 2;
             expect(await mockNR.setVersion(updatedVersion)).to.emit(mockNR, "VersionUpdated").withArgs(updatedVersion);
