@@ -493,6 +493,41 @@ describe("NodeRegistry Contract", function () {
             expect(updatedPlatformInfo.platformFee).to.be.equal(updatedPlatformFee);
         });
 
+        it("Should be able to pause / unpause contract", async function () {
+            const registerFee = platformFee;
+            const node1 = { nodeId: BigNumber.from("1"), nodeUri: "first node uri", nodeEntry: "first node entry", fee: registerFee };
+            const node2 = { nodeId: BigNumber.from("2"), nodeUri: "second node uri", nodeEntry: "second node entry", fee: registerFee };
+            const node3 = { nodeId: BigNumber.from("3"), nodeUri: "third node uri", nodeEntry: "third node entry", fee: registerFee };
+            
+            expect(await nodeRegistry.paused()).to.be.equal(false);
+            // ********************************************************  Register  ******************************************************** //
+            await expect(nodeRegistry.connect(addr1).mint(node1.nodeUri, node1.nodeEntry, { value: node1.fee }))
+                .to.emit(nodeRegistry, "RegisteredFees").withArgs(node1.nodeId, platform.address, node1.fee)
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node1.nodeId, node1.nodeUri, node1.nodeEntry);
+            await expect(nodeRegistry.connect(addr2).mint(node2.nodeUri, node2.nodeEntry, { value: node2.fee }))
+                .to.emit(nodeRegistry, "RegisteredFees").withArgs(node2.nodeId, platform.address, node2.fee)
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node2.nodeId, node2.nodeUri, node2.nodeEntry);
+            // ********************************************************  Pause  ******************************************************** //
+            await expect(nodeRegistry.connect(addr1).pause()).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(owner).pause()).to.emit(nodeRegistry, "Paused").withArgs(owner.address);
+            expect(await nodeRegistry.paused()).to.be.equal(true);
+
+            await expect(nodeRegistry.connect(addr1).mint(node3.nodeUri, node3.nodeEntry, { value: node3.fee })).to.be.revertedWith("Pausable: paused");
+            await expect(nodeRegistry.connect(addr1).burn(node1.nodeId)).to.emit(nodeRegistry, "NodeUnregistered").withArgs(node1.nodeId);
+            await expect(nodeRegistry.connect(addr2).updateNode(node2.nodeId, node1.nodeUri, node1.nodeEntry))
+                .to.emit(nodeRegistry, "NodeUpdated").withArgs(node2.nodeId, node1.nodeUri, node1.nodeEntry);
+            // ********************************************************  Unpause  ******************************************************** //
+            await expect(nodeRegistry.connect(addr2).unpause()).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(nodeRegistry.connect(owner).unpause()).to.emit(nodeRegistry, "Unpaused").withArgs(owner.address);
+            expect(await nodeRegistry.paused()).to.be.equal(false);
+
+            await expect(nodeRegistry.connect(owner).mint(node1.nodeUri, node1.nodeEntry, { value: node1.fee }))
+                .to.be.revertedWith("NodeRegistry: duplicated node");
+            await expect(nodeRegistry.connect(owner).mint(node3.nodeUri, node3.nodeEntry, { value: node3.fee }))
+                .to.emit(nodeRegistry, "RegisteredFees").withArgs(node3.nodeId, platform.address, node3.fee)
+                .to.emit(nodeRegistry, "NodeRegistered").withArgs(node3.nodeId, node3.nodeUri, node3.nodeEntry);
+        });
+
         it("Should be able to upgrade proxy contract", async function () {
             const registerFee = platformFee;
             const node1 = { nodeId: BigNumber.from("1"), nodeUri: "first node uri", nodeEntry: "first node entry", fee: registerFee };
