@@ -3,88 +3,29 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
+
+import "../interface/INodeRegistry.sol";
+import "../common/EnumerableSet.sol";
+import "../common/PausableUpgradeable.sol";
 import "../common/OwnableUpgradeable.sol";
 import "../common/ReentrancyGuardUpgradeable.sol";
-import "../common/EnumerableSet.sol";
 import "../token/ERC20/IERC20.sol";
 import "../token/ERC721/ERC721.sol";
 
-contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 {
+contract NodeRegistry is INodeRegistryDataAndEvents, OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721, PausableUpgradeable {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-
-    /**
-     * @notice RegisterFee is chareged on registeration.
-     * @param tokenId Node unique Id.
-     * @param platformAddr Platform address to receive register fees.
-     * @param registerFee Register fee.
-     */
-    event RegisteredFees(
-        uint256 tokenId,
-        address platformAddr,
-        uint256 registerFee
-    );
-
-    /**
-     * @notice A new node is registered.
-     * @param tokenId Node unique Id.
-     * @param tokenURI Node uri.
-     * @param nodeEntry Node  entry.
-     */
-    event NodeRegistered(
-        uint256 tokenId,
-        string tokenURI,
-        string nodeEntry
-    );
-
-    /**
-     * @notice Node unregistered event
-     * @param tokenId Unregistered node Id
-     */
-    event NodeUnregistered(
-        uint256 tokenId
-    );
-
-    /**
-     * @notice Node updated event
-     * @param tokenId Updated node Id.
-     * @param newNodeURI Updated node uri.
-     */
-    event NodeUpdated(
-        uint256 tokenId,
-        string newNodeURI
-    );
-
-    /**
-     * @notice Node revealed event
-     * @param state Revealed state, 1 for true, 0 for false
-     */
-    event Revealed(uint256 state);
-
-    /**
-     * @dev MUST emit when platform fee config is updated.
-     * The `platformAddress` argument MUST be the address of the platform.
-     * The `platformFee` argument MUST be the fee rate of the platform.
-     */
-    event PlatformFeeChanged(
-        address platformAddress,
-        uint256 platformFee
-    );
-
-    struct Node {
-        uint256 tokenId;
-        string tokenURI;
-        string nodeEntry;
-    }
-
+    
     string private constant _name = "Hive Node Token Collection";
     string private constant _symbol = "HNTC";
+    uint256 private _lastTokenId;
     uint256 private _isRevealed;
     uint256 private _platformFee;
     address private _platformAddr;
     mapping(uint256 => Node) private _allTokens;
     EnumerableSet.UintSet private _tokens;
+    mapping(string => mapping(string => uint256)) private _nodeToTokenId;
 
     /**
      * @notice Initialize a node registry contract with platform address info.
@@ -93,6 +34,7 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      */
     function initialize(address platformAddress_, uint256 platformFee_) external initializer {
         __Ownable_init();
+        __Pausable_init();
         __ERC721_init(_name, _symbol);
         require(
             _setPlatformAddr(platformAddress_, platformFee_),
@@ -101,16 +43,33 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
     }
 
     /**
+     * @notice Pause the vesting release.
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpause the vesting release.
+     */
+    function unpause() external onlyOwner {
+        require(_platformAddr != address(0), "NodeRegistry: Contract is not initialized");
+        _unpause();
+    }
+
+    /**
      * @notice Register a new node by personal wallet.
-     * @param tokenId Node unique Id.
      * @param tokenURI Node uri.
      * @param nodeEntry Node entry.
      */
-     function mint(
-        uint256 tokenId,   // nodeId
-        string memory tokenURI,  // nodeURI
+    function mint(
+        string memory tokenURI,
         string memory nodeEntry
-    ) external payable nonReentrant {
+    ) external payable nonReentrant whenNotPaused {
+        require(
+            _nodeToTokenId[tokenURI][nodeEntry] == 0,
+            "NodeRegistry: duplicated node"
+        );
         require(
             msg.value == _platformFee,
             "NodeRegistry: incorrect register fee"
@@ -120,6 +79,7 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
             (success, ) = payable(_platformAddr).call{value: msg.value}("");
             require(success, "NodeRegistry: register fee transfer failed");
         }
+        uint256 tokenId = _lastTokenId.add(1);
         emit RegisteredFees(tokenId, _platformAddr, msg.value);
         
         _mint(msg.sender, tokenId);
@@ -132,6 +92,8 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
 
         _allTokens[tokenId] = newNode;
         _tokens.add(tokenId);
+        _lastTokenId = tokenId;
+        _nodeToTokenId[tokenURI][nodeEntry] = tokenId;
 
         emit NodeRegistered(tokenId, tokenURI, nodeEntry);
     }
@@ -151,14 +113,12 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
             ownerOf(tokenId) == msg.sender || msg.sender == owner(),
             "NodeRegistry: caller is not node owner or contract owner"
         );
-
         super._burn(tokenId);
-        // registered nodes
+        
+        Node memory nodeToBurn = _allTokens[tokenId];
         _tokens.remove(tokenId);
-        // Clear _allTokens
-        if (_allTokens[tokenId].tokenId != 0) {
-            delete _allTokens[tokenId];
-        }
+        _nodeToTokenId[nodeToBurn.tokenURI][nodeToBurn.nodeEntry] = 0;
+        delete _allTokens[tokenId];
 
         emit NodeUnregistered(tokenId);
     }
@@ -167,10 +127,12 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
      * @notice Update node by personal wallet.
      * @param tokenId Node Id to be updated.
      * @param tokenURI Updated node uri.
+     * @param nodeEntry Updated node entry.
      */
     function updateNode(
         uint256 tokenId,
-        string memory tokenURI
+        string memory tokenURI,
+        string memory nodeEntry
     ) external nonReentrant {
         require(
             _exists(tokenId),
@@ -180,12 +142,20 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
             ownerOf(tokenId) == msg.sender,
             "NodeRegistry: caller is not node owner"
         );
+        require(
+            _nodeToTokenId[tokenURI][nodeEntry] == 0,
+            "NodeRegistry: duplicated node"
+        );
         Node memory updatedNode = _allTokens[tokenId];
-        updatedNode.tokenId = tokenId;
-        updatedNode.tokenURI = tokenURI;
-        _allTokens[tokenId] = updatedNode;
+        _nodeToTokenId[updatedNode.tokenURI][updatedNode.nodeEntry] = 0;
 
-        emit NodeUpdated(tokenId, tokenURI);
+        updatedNode.tokenURI = tokenURI;
+        updatedNode.nodeEntry = nodeEntry;
+
+        _allTokens[tokenId] = updatedNode;
+        _nodeToTokenId[tokenURI][nodeEntry] = tokenId;
+
+        emit NodeUpdated(tokenId, tokenURI, nodeEntry);
     }
 
     /**
@@ -301,6 +271,26 @@ contract NodeRegistry is OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC721 
         uint256 tokenId
     ) external view returns (bool) {
         return _exists(tokenId);
+    }
+
+    /**
+     * @notice Get last tokenId.
+     * @return The last nodeId
+     */
+    function getLastTokenId() external view returns (uint256) {
+        return _lastTokenId;
+    }
+
+    /**
+     * @notice Get node Id from node uri and node entry.
+     * @param tokenURI Node URI.
+     * @param nodeEntry Node Entry.
+     * @return The node Id
+     */
+    function getTokenId(
+        string memory tokenURI, string memory nodeEntry
+    ) external view returns (uint256) {
+        return _nodeToTokenId[tokenURI][nodeEntry];
     }
 
     /**
