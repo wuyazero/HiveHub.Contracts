@@ -30,14 +30,8 @@ module.exports = {
   parameters: {
     deployment: {
       LastTokenId: 0, // Last TokenId of Node Registry Contract
-      PlatformAddress: '', // Platform Address of the Node Registry Contract 
-      PlatformFee: BigNumber.from('0'), // Platform Fee of the Node Registry Contract 
-    },
-    script: {
-      ContractAddress: '', // Deployed proxy contract address of the Node Registry Contract
-      testAddress1: '',
-      testAddress2: '',
-      testAddress3: '',
-    },
+      PlatformAddress: '', // Platform Address of the Node Registry Contract
+      PlatformFee: BigNumber.from('0'), // Platform Fee of the Node Registry Contract
+    }
   }
 };
