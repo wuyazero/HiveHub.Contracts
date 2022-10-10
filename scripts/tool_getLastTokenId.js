@@ -12,20 +12,10 @@ async function main() {
   const NodeRegistry = await ethers.getContractFactory("NodeRegistry");
   const nodeRegistry = NodeRegistry.attach(config.parameters.script.ContractAddress);
 
-  const totalSupply = await nodeRegistry.totalSupply();
-  const nodeCount = await nodeRegistry.nodeCount();
-  const nodeIds = await nodeRegistry.nodeIds(); 
-  const nodes = [];
-  for (let i = 0; i < nodeIds.length; i ++) {
-    const item = await nodeRegistry.nodeByIndex(i);
-    nodes.push(item);
-  }
+  const lastTokenId = await nodeRegistry.getLastTokenId();
   
-  console.log("Displaying node info  =====>>");
-  console.log(`Total supply: ${totalSupply}`);
-  console.log(`Node count: ${nodeCount}`);
-  console.log(`Node Ids: ${nodeIds}`);
-  console.log(`Nodes: ${nodes}`);
+  console.log("Displaying last tokenId info  =====>>");
+  console.log(`Last Token Id: ${lastTokenId}`);
   console.log("");
 }
 
